@@ -9,6 +9,21 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Segoe UI',Tahoma,sans-serif; background:#0a1628; color:#e0e0e0; min-height:100vh; }
+/* ── TELA DE LOGIN ── */
+#loginOverlay { position:fixed; inset:0; background:#0a1628; display:flex; align-items:center; justify-content:center; z-index:9999; }
+.login-box { background:linear-gradient(135deg,#0f2240 0%,#162d50 100%); border:1px solid #2a3f5f; border-radius:14px; padding:40px 44px; width:360px; box-shadow:0 8px 40px rgba(0,0,0,0.5); display:flex; flex-direction:column; align-items:center; gap:20px; }
+.login-logo { font-size:22px; font-weight:800; color:#fff; letter-spacing:1.5px; text-align:center; line-height:1.3; }
+.login-logo span { color:#c0392b; }
+.login-subtitle { font-size:12px; color:#8899aa; text-align:center; margin-top:-10px; }
+.login-field { width:100%; position:relative; }
+.login-field input { width:100%; padding:12px 16px 12px 42px; background:rgba(255,255,255,0.05); border:1px solid #2a3f5f; border-radius:8px; color:#fff; font-size:14px; outline:none; transition:border .2s; box-sizing:border-box; letter-spacing:2px; }
+.login-field input:focus { border-color:#c0392b; }
+.login-field .icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#8899aa; font-size:16px; }
+.login-btn { width:100%; padding:13px; background:linear-gradient(135deg,#c0392b,#a93226); border:none; border-radius:8px; color:#fff; font-size:14px; font-weight:700; letter-spacing:1px; cursor:pointer; transition:opacity .2s; }
+.login-btn:hover { opacity:0.88; }
+.login-error { color:#e74c3c; font-size:12px; text-align:center; min-height:18px; }
+.login-footer { font-size:11px; color:#3a5a7a; text-align:center; margin-top:-6px; }
+/* ── DASHBOARD ── */
 .header { background:linear-gradient(135deg,#0d1f3c 0%,#162d50 100%); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #c0392b; }
 .header h1 { font-size:20px; font-weight:700; color:#fff; letter-spacing:1px; }
 .header .subtitle { font-size:12px; color:#8899aa; margin-top:2px; }
@@ -57,6 +72,25 @@ tr:hover td { background:rgba(192,57,43,0.06); }
 </head>
 <body>
 
+<!-- TELA DE LOGIN -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">BI FINANCEIRO<br><span>AMERINODE</span> 2026</div>
+    <div class="login-subtitle">Área restrita &mdash; insira sua senha para continuar</div>
+    <div class="login-field">
+      <span class="icon">🔒</span>
+      <input type="password" id="senhaInput" placeholder="Senha de acesso"
+             onkeydown="if(event.key==='Enter') verificarSenha()">
+    </div>
+    <button class="login-btn" onclick="verificarSenha()">ENTRAR</button>
+    <div class="login-error" id="loginErro"></div>
+    <div class="login-footer">Amerinode do Brasil &copy; 2026</div>
+  </div>
+</div>
+
+<!-- DASHBOARD (oculto até autenticação) -->
+<div id="dashContent" style="display:none;">
+
 <div class="header">
   <div>
     <h1>BI FINANCEIRO &mdash; AMERINODE 2026</h1>
@@ -67,7 +101,7 @@ tr:hover td { background:rgba(192,57,43,0.06); }
       <label>Meta Semanal</label>
       <input type="text" id="metaInput" value="375.000,00" onchange="updateMeta()">
     </div>
-    <div class="update-info">Atualizado: 29/03/2026</div>
+    <div class="update-info">Atualizado: 31/03/2026</div>
   </div>
 </div>
 
@@ -95,7 +129,6 @@ tr:hover td { background:rgba(192,57,43,0.06); }
     </div>
     <div id="evolutionChart" style="height:340px;"></div>
   </div>
-
   <div class="grid-2">
     <div class="chart-box">
       <div class="chart-title" style="margin-bottom:12px;">Faturamento por PMO</div>
@@ -103,10 +136,9 @@ tr:hover td { background:rgba(192,57,43,0.06); }
     </div>
     <div class="chart-box">
       <div class="chart-title" style="margin-bottom:12px;">Faturamento por Warehouse</div>
-      <div id="whChart" style="height:340px;"></div>
+      <div id="whChart" style="height:380px;"></div>
     </div>
   </div>
-
   <div class="grid-2">
     <div class="table-box">
       <h3>Detalhamento Mensal por PMO</h3>
@@ -119,263 +151,63 @@ tr:hover td { background:rgba(192,57,43,0.06); }
   </div>
 </div>
 
+</div><!-- /dashContent -->
+
 <script>
-// ============================================================
-// JAVASCRIPT DO DASHBOARD
-// Todos os dados vêm do objeto DATA injetado pelo Python.
-// As funções abaixo renderizam os componentes dinamicamente
-// conforme o usuário interage com filtros e botões de view.
-// ============================================================
+const DATA = {"weekly_target": 375000, "pmos": ["MILETO", "TIM", "VITAL", "VIVO N3", "VIVO REPARO", "VIVO SPM"], "warehouses": ["Backoffice TIM", "JDI Remanufatura", "Jaguare", "Jundiaí", "Reparo Terceiros", "Rio de Janeiro (Remanufatura)", "SPM BBN", "SPM Regional SP", "Sta Rita"], "weeks": ["2026-W01", "2026-W02", "2026-W03", "2026-W04", "2026-W05", "2026-W06", "2026-W07", "2026-W08", "2026-W09", "2026-W10", "2026-W11", "2026-W12", "2026-W13"], "months": ["2026-01", "2026-02", "2026-03"], "weekly": {"total": {"2026-W01": 97774.47, "2026-W02": 464401.92, "2026-W03": 480444.1, "2026-W04": 494014.93, "2026-W05": 679940.01, "2026-W06": 570261.45, "2026-W07": 560580.47, "2026-W08": 612622.11, "2026-W09": 612622.11, "2026-W10": 669651.46, "2026-W11": 639432.45, "2026-W12": 502624.67, "2026-W13": 641330.13}, "by_pmo": {"2026-W01": {"MILETO": 0, "VITAL": 0, "VIVO N3": 0, "VIVO REPARO": 74565.58, "TIM": 0.0, "VIVO SPM": 23208.89}, "2026-W02": {"MILETO": 44368.0, "VITAL": 198989.7, "VIVO N3": 0, "VIVO REPARO": 118227.46, "TIM": 0.0, "VIVO SPM": 102816.76}, "2026-W03": {"MILETO": 16249.78, "VITAL": 152950.8, "VIVO N3": 0, "VIVO REPARO": 214615.72, "TIM": 0.0, "VIVO SPM": 96627.8}, "2026-W04": {"MILETO": 0, "VITAL": 158210.7, "VIVO N3": 0, "VIVO REPARO": 242737.05, "TIM": 0.0, "VIVO SPM": 93067.18}, "2026-W05": {"MILETO": 48804.8, "VITAL": 160811.1, "VIVO N3": 22804.57, "VIVO REPARO": 339049.39, "TIM": 18681.02, "VIVO SPM": 89789.13}, "2026-W06": {"MILETO": 17747.2, "VITAL": 190085.3, "VIVO N3": 0, "VIVO REPARO": 225392.61, "TIM": 16243.3, "VIVO SPM": 120793.04}, "2026-W07": {"MILETO": 22184.0, "VITAL": 195561.9, "VIVO N3": 0, "VIVO REPARO": 203180.27, "TIM": 20655.85, "VIVO SPM": 118998.45}, "2026-W08": {"MILETO": 9844.15, "VITAL": 145267.8, "VIVO N3": 0, "VIVO REPARO": 135967.75, "TIM": 17266.5, "VIVO SPM": 120695.43}, "2026-W09": {"MILETO": 30308.89, "VITAL": 209194.3, "VIVO N3": 0, "VIVO REPARO": 244322.32, "TIM": 22638.3, "VIVO SPM": 106158.3}, "2026-W10": {"MILETO": 0, "VITAL": 210730.9, "VIVO N3": 0, "VIVO REPARO": 296022.74, "TIM": 19440.8, "VIVO SPM": 143457.02}, "2026-W11": {"MILETO": 0, "VITAL": 230884.0, "VIVO N3": 0, "VIVO REPARO": 210988.43, "TIM": 17969.95, "VIVO SPM": 179590.07}, "2026-W12": {"MILETO": 0, "VITAL": 205825.6, "VIVO N3": 0, "VIVO REPARO": 174773.08, "TIM": 13621.35, "VIVO SPM": 108404.64}, "2026-W13": {"MILETO": 0, "VITAL": 245836.3, "VIVO N3": 0, "VIVO REPARO": 260689.57, "TIM": 12278.4, "VIVO SPM": 122525.86}}, "by_warehouse": {"2026-W01": {"Backoffice TIM": 0.0, "JDI Remanufatura": 0, "Jaguare": 22509.83, "Jundiaí": 24839.0, "Reparo Terceiros": 27216.75, "Rio de Janeiro (Remanufatura)": 0, "SPM BBN": 0, "SPM Regional SP": 23208.89, "Sta Rita": 0}, "2026-W02": {"Backoffice TIM": 0.0, "JDI Remanufatura": 0, "Jaguare": 20116.43, "Jundiaí": 33987.16, "Reparo Terceiros": 48520.67, "Rio de Janeiro (Remanufatura)": 243357.7, "SPM BBN": 0, "SPM Regional SP": 102816.76, "Sta Rita": 15603.2}, "2026-W03": {"Backoffice TIM": 0.0, "JDI Remanufatura": 0, "Jaguare": 34274.31, "Jundiaí": 46566.89, "Reparo Terceiros": 22971.18, "Rio de Janeiro (Remanufatura)": 169200.58, "SPM BBN": 0, "SPM Regional SP": 96627.8, "Sta Rita": 110803.34}, "2026-W04": {"Backoffice TIM": 0.0, "JDI Remanufatura": 0, "Jaguare": 9509.77, "Jundiaí": 60479.5, "Reparo Terceiros": 98677.93, "Rio de Janeiro (Remanufatura)": 158210.7, "SPM BBN": 0, "SPM Regional SP": 93067.18, "Sta Rita": 74069.85}, "2026-W05": {"Backoffice TIM": 18681.02, "JDI Remanufatura": 22804.57, "Jaguare": 27397.43, "Jundiaí": 103307.53, "Reparo Terceiros": 103664.64, "Rio de Janeiro (Remanufatura)": 209615.9, "SPM BBN": 0, "SPM Regional SP": 89789.13, "Sta Rita": 104679.79}, "2026-W06": {"Backoffice TIM": 16243.3, "JDI Remanufatura": 0, "Jaguare": 13212.68, "Jundiaí": 49740.58, "Reparo Terceiros": 97169.87, "Rio de Janeiro (Remanufatura)": 207832.5, "SPM BBN": 8317.97, "SPM Regional SP": 112475.07, "Sta Rita": 65269.48}, "2026-W07": {"Backoffice TIM": 20655.85, "JDI Remanufatura": 0, "Jaguare": 24328.18, "Jundiaí": 43580.8, "Reparo Terceiros": 34487.78, "Rio de Janeiro (Remanufatura)": 217745.9, "SPM BBN": 29001.66, "SPM Regional SP": 89996.79, "Sta Rita": 100783.51}, "2026-W08": {"Backoffice TIM": 17266.5, "JDI Remanufatura": 0, "Jaguare": 15280.55, "Jundiaí": 69288.9, "Reparo Terceiros": 5120.07, "Rio de Janeiro (Remanufatura)": 155111.95, "SPM BBN": 18070.42, "SPM Regional SP": 102625.01, "Sta Rita": 46278.23}, "2026-W09": {"Backoffice TIM": 22638.3, "JDI Remanufatura": 0, "Jaguare": 28621.1, "Jundiaí": 147175.39, "Reparo Terceiros": 1977.96, "Rio de Janeiro (Remanufatura)": 239503.19, "SPM BBN": 8317.97, "SPM Regional SP": 97840.33, "Sta Rita": 66547.87}, "2026-W10": {"Backoffice TIM": 19440.8, "JDI Remanufatura": 0, "Jaguare": 5882.62, "Jundiaí": 133849.66, "Reparo Terceiros": 10191.76, "Rio de Janeiro (Remanufatura)": 210730.9, "SPM BBN": 51597.99, "SPM Regional SP": 91859.03, "Sta Rita": 146098.7}, "2026-W11": {"Backoffice TIM": 17969.95, "JDI Remanufatura": 0, "Jaguare": 28744.56, "Jundiaí": 127309.66, "Reparo Terceiros": 37189.66, "Rio de Janeiro (Remanufatura)": 230884.0, "SPM BBN": 78464.54, "SPM Regional SP": 101125.53, "Sta Rita": 17744.55}, "2026-W12": {"Backoffice TIM": 13621.35, "JDI Remanufatura": 0, "Jaguare": 11255.77, "Jundiaí": 30221.43, "Reparo Terceiros": 14276.72, "Rio de Janeiro (Remanufatura)": 205825.6, "SPM BBN": 14500.83, "SPM Regional SP": 93903.81, "Sta Rita": 119019.16}, "2026-W13": {"Backoffice TIM": 12278.4, "JDI Remanufatura": 0, "Jaguare": 0, "Jundiaí": 83834.24, "Reparo Terceiros": 54086.68, "Rio de Janeiro (Remanufatura)": 245836.3, "SPM BBN": 31136.77, "SPM Regional SP": 91389.09, "Sta Rita": 122768.65}}}, "monthly": {"total": {"2026-01": 2126840.37, "2026-02": 2184321.94, "2026-03": 2456391.91}, "by_pmo": {"2026-01": {"MILETO": 109422.58, "TIM": 17657.82, "VITAL": 670962.3, "VIVO N3": 22804.57, "VIVO REPARO": 902843.41, "VIVO SPM": 403149.69}, "2026-02": {"MILETO": 80084.24, "TIM": 76867.9, "VITAL": 740109.3, "VIVO N3": 0, "VIVO REPARO": 820649.16, "VIVO SPM": 466611.34}, "2026-03": {"MILETO": 0, "TIM": 79291.8, "VITAL": 893276.8, "VIVO N3": 0, "VIVO REPARO": 942473.82, "VIVO SPM": 556371.54}}, "by_warehouse": {"2026-01": {"Backoffice TIM": 17657.82, "JDI Remanufatura": 22804.57, "Jaguare": 91297.94, "Jundiaí": 232554.87, "Reparo Terceiros": 273834.42, "Rio de Janeiro (Remanufatura)": 780384.88, "SPM BBN": 0, "SPM Regional SP": 403149.69, "Sta Rita": 305156.18}, "2026-02": {"Backoffice TIM": 76867.9, "JDI Remanufatura": 0, "Jaguare": 81442.51, "Jundiaí": 321571.88, "Reparo Terceiros": 138755.68, "Rio de Janeiro (Remanufatura)": 820193.54, "SPM BBN": 63708.02, "SPM Regional SP": 402903.32, "Sta Rita": 278879.09}, "2026-03": {"Backoffice TIM": 79291.8, "JDI Remanufatura": 0, "Jaguare": 45882.95, "Jundiaí": 375214.99, "Reparo Terceiros": 115744.82, "Rio de Janeiro (Remanufatura)": 893276.8, "SPM BBN": 175700.13, "SPM Regional SP": 380671.41, "Sta Rita": 405631.06}}}};
+let currentFilter='Todos', currentView='weekly', weeklyTarget=DATA.weekly_target;
+const PMO_COLORS={'TIM':'#00a8e0','VIVO REPARO':'#c0392b','VITAL':'#2980b9','MILETO':'#8e44ad','VIVO N3':'#27ae60','VIVO SPM':'#f39c12'};
+const WH_COLORS=['#00a8e0','#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#1abc9c','#e67e22','#3498db'];
+const MONTH_NAMES={'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun','07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
+function fmtBRL(v){if(v==null||isNaN(v))return'R$ 0,00';return'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtK(v){if(v>=1000000)return(v/1000000).toLocaleString('pt-BR',{maximumFractionDigits:1})+'M';if(v>=1000)return(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+'K';return v.toLocaleString('pt-BR',{maximumFractionDigits:0});}
+function pct(a,b){return b?((a-b)/b*100):0;}
+function pctStr(v){return(v>=0?'+':'')+v.toFixed(1)+'%';}
+function fmtMonth(m){var p=m.split('-');return MONTH_NAMES[p[1]]+'/'+p[0].slice(2);}
+function fmtWeek(w){return w.replace('2026-','');}
+function getWVal(wk){if(currentFilter==='Todos')return DATA.weekly.total[wk]||0;return(DATA.weekly.by_pmo[wk]||{})[currentFilter]||0;}
+function getMVal(mo){if(currentFilter==='Todos')return DATA.monthly.total[mo]||0;return(DATA.monthly.by_pmo[mo]||{})[currentFilter]||0;}
+const layoutBase={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:60,r:20,t:10,b:40},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10}},yaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10},tickprefix:'R$ ',separatethousands:true},legend:{orientation:'h',y:-0.15,font:{size:10}},hovermode:'x unified'};
+function renderCards(){const weeks=DATA.weeks,months=DATA.months;let totalAcum=0;months.forEach(m=>totalAcum+=getMVal(m));const lw=weeks[weeks.length-1],pw=weeks[weeks.length-2];const lwv=getWVal(lw),pwv=getWVal(pw),wvar=pct(lwv,pwv);const lm=months[months.length-1],pm=months.length>1?months[months.length-2]:null;const lmv=getMVal(lm),mvar=pm?pct(lmv,getMVal(pm)):0;const mpct=weeklyTarget>0?(lwv/weeklyTarget*100):0;const mc=mpct>=100?'#27ae60':mpct>=80?'#f39c12':'#e74c3c';let sw=0,sumW=0;weeks.forEach(w=>{const v=getWVal(w);if(v>0){sw++;sumW+=v;}});const avg=sw>0?sumW/sw:0;document.getElementById('cardsContainer').innerHTML=`<div class="card"><div class="label">Faturamento Acumulado 2026</div><div class="value">${fmtBRL(totalAcum)}</div><div class="sub neutral">${months.length} meses</div></div><div class="card"><div class="label">Último Mês (${fmtMonth(lm)})</div><div class="value">${fmtBRL(lmv)}</div><div class="sub ${mvar>=0?'up':'down'}">${pm?pctStr(mvar)+' vs '+fmtMonth(pm):''}</div></div><div class="card"><div class="label">Última Semana (${fmtWeek(lw)})</div><div class="value">${fmtBRL(lwv)}</div><div class="sub ${wvar>=0?'up':'down'}">${pctStr(wvar)} vs ${fmtWeek(pw)}</div></div><div class="card"><div class="label">Média Semanal</div><div class="value">${fmtBRL(avg)}</div><div class="sub neutral">${sw} semanas com faturamento</div></div><div class="card meta-card"><div class="label">Meta Semanal</div><div class="value">${fmtBRL(weeklyTarget)}</div><div class="sub" style="color:${mc}">${fmtWeek(lw)}: ${mpct.toFixed(1)}% da meta</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(mpct,100)}%;background:${mc};"></div></div></div>`;}
+function renderEvolution(){const div=document.getElementById('evolutionChart');const isW=currentView==='weekly';const keys=isW?DATA.weeks:DATA.months;const labels=keys.map(k=>isW?fmtWeek(k):fmtMonth(k));const yv=keys.map(k=>isW?getWVal(k):getMVal(k));const vari=[0,...yv.slice(1).map((v,i)=>pct(v,yv[i]))];const vtxt=vari.map((v,i)=>i===0?'':pctStr(v));const bc=yv.map(v=>isW&&v>=weeklyTarget?'#27ae60':'#c0392b');const traces=[{x:labels,y:yv,type:'bar',name:'Faturamento',marker:{color:bc,opacity:0.85},text:yv.map(v=>fmtK(v)),textposition:'outside',textfont:{size:9,color:'#8899aa'},hovertemplate:'%{x}<br>R$ %{y:,.2f}<extra></extra>'},{x:labels,y:vari,type:'scatter',mode:'lines+markers+text',name:'Variação %',yaxis:'y2',line:{color:'#f39c12',width:2},marker:{size:5,color:'#f39c12'},text:vtxt,textposition:'top center',textfont:{size:9,color:'#f39c12'},hovertemplate:'%{x}: %{text}<extra></extra>'}];if(isW)traces.push({x:labels,y:labels.map(()=>weeklyTarget),type:'scatter',mode:'lines',name:'Meta',line:{color:'#fff',width:1,dash:'dot'},hoverinfo:'skip'});const layout={...layoutBase,yaxis:{...layoutBase.yaxis,title:'Faturamento (R$)'},yaxis2:{overlaying:'y',side:'right',showgrid:false,ticksuffix:'%',gridcolor:'transparent',linecolor:'transparent',tickfont:{size:9,color:'#f39c12'},zeroline:false},barmode:'group',showlegend:true};Plotly.react(div,traces,layout,{responsive:true,displayModeBar:false});}
+function renderPMO(){const div=document.getElementById('pmoChart');const isW=currentView==='weekly';const keys=isW?DATA.weeks:DATA.months;const labels=keys.map(k=>isW?fmtWeek(k):fmtMonth(k));const bp=isW?DATA.weekly.by_pmo:DATA.monthly.by_pmo;const pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];const traces=pmos.map(p=>({x:labels,y:keys.map(k=>(bp[k]||{})[p]||0),type:'bar',name:p,marker:{color:PMO_COLORS[p]||'#666'},hovertemplate:p+'<br>R$ %{y:,.2f}<extra></extra>'}));Plotly.react(div,traces,{...layoutBase,barmode:'stack',showlegend:true},{responsive:true,displayModeBar:false});}
+function renderWarehouse(){const div=document.getElementById('whChart');let totals={};DATA.warehouses.forEach(w=>{totals[w]=0;});DATA.months.forEach(m=>{const wd=DATA.monthly.by_warehouse[m]||{};DATA.warehouses.forEach(w=>{totals[w]+=(wd[w]||0);});});const items=Object.entries(totals).filter(([,v])=>v>0).sort((a,b)=>a[1]-b[1]);const trace={y:items.map(x=>x[0]),x:items.map(x=>x[1]),type:'bar',orientation:'h',marker:{color:items.map((_,i)=>WH_COLORS[i%WH_COLORS.length]),opacity:0.9},text:items.map(x=>fmtBRL(x[1])),textposition:'outside',textfont:{size:10,color:'#b0c4de'},hovertemplate:'%{y}<br>%{text}<extra></extra>',cliponaxis:false};const layout={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:190,r:120,t:30,b:30},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:9,color:'#5a7a9a'},showticklabels:false,zeroline:false},yaxis:{tickfont:{size:11,color:'#d0d8e0'},gridcolor:'transparent',linecolor:'transparent',automargin:true},showlegend:false,annotations:[{x:0.5,y:1.06,xref:'paper',yref:'paper',text:'Acumulado 2026',showarrow:false,font:{size:10,color:'#8899aa'}}]};Plotly.react(div,[trace],layout,{responsive:true,displayModeBar:false});}
+function renderTables(){const pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];let h='<table><tr><th>Mês</th>'+pmos.map(p=>'<th>'+p+'</th>').join('')+'<th>Total</th></tr>';DATA.months.forEach(m=>{h+='<tr><td>'+fmtMonth(m)+'</td>';let rt=0;pmos.forEach(p=>{const v=(DATA.monthly.by_pmo[m]||{})[p]||0;rt+=v;h+='<td>'+fmtBRL(v)+'</td>';});h+='<td style="font-weight:600;color:#fff">'+fmtBRL(rt)+'</td></tr>';});h+='<tr style="border-top:2px solid #2a3f5f;font-weight:600;color:#fff"><td>Total</td>';let gt=0;pmos.forEach(p=>{let s=0;DATA.months.forEach(m=>s+=(DATA.monthly.by_pmo[m]||{})[p]||0);gt+=s;h+='<td>'+fmtBRL(s)+'</td>';});h+='<td>'+fmtBRL(gt)+'</td></tr></table>';document.getElementById('monthlyTable').innerHTML=h;let h2='<table><tr><th>Mês</th>'+DATA.warehouses.map(w=>'<th style="font-size:9px">'+w+'</th>').join('')+'<th>Total</th></tr>';DATA.months.forEach(m=>{h2+='<tr><td>'+fmtMonth(m)+'</td>';let rt=0;DATA.warehouses.forEach(w=>{const v=(DATA.monthly.by_warehouse[m]||{})[w]||0;rt+=v;h2+='<td>'+(v>0?fmtK(v):'-')+'</td>';});h2+='<td style="font-weight:600;color:#fff">'+fmtBRL(rt)+'</td></tr>';});h2+='</table>';document.getElementById('whTable').innerHTML=h2;}
+function setFilter(f){currentFilter=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===f));renderAll();}
+function setView(v){currentView=v;document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(v==='weekly'?'Semanal':'Mensal')));renderAll();}
+function updateMeta(){const raw=document.getElementById('metaInput').value.replace(/[^\d,.]/g,'').replace(/\./g,'').replace(',','.');weeklyTarget=parseFloat(raw)||375000;document.getElementById('metaInput').value=weeklyTarget.toLocaleString('pt-BR',{minimumFractionDigits:2});renderAll();}
+function renderAll(){renderCards();renderEvolution();renderPMO();renderWarehouse();renderTables();}
 
-// Dados financeiros injetados pelo Python (gerado via json.dumps)
-const DATA = {"weekly_target": 375000, "pmos": ["MILETO", "TIM", "VITAL", "VIVO N3", "VIVO REPARO", "VIVO SPM"], "warehouses": ["Backoffice TIM", "JDI Remanufatura", "Jaguare", "Jundiaí", "Reparo Terceiros", "Rio de Janeiro (Remanufatura)", "SPM BBN", "SPM Regional SP", "Sta Rita"], "weeks": ["2026-W01", "2026-W02", "2026-W03", "2026-W04", "2026-W05", "2026-W06", "2026-W07", "2026-W08", "2026-W09", "2026-W10", "2026-W11", "2026-W12", "2026-W13"], "months": ["2026-01", "2026-02", "2026-03"], "weekly": {"total": {"2026-W01": 98513.01, "2026-W02": 465006.18, "2026-W03": 482592.58, "2026-W04": 494283.49, "2026-W05": 679358.08, "2026-W06": 570581.2, "2026-W07": 559045.67, "2026-W08": 426867.33, "2026-W09": 609984.91, "2026-W10": 673413.56, "2026-W11": 642594.8, "2026-W12": 504654.62, "2026-W13": 648052.53}, "by_pmo": {"2026-W01": {"MILETO": 0, "VITAL": 0, "VIVO N3": 0, "VIVO REPARO": 74565.58, "TIM": 738.54, "VIVO SPM": 23208.89}, "2026-W02": {"MILETO": 44368.0, "VITAL": 198989.7, "VIVO N3": 0, "VIVO REPARO": 118227.46, "TIM": 604.26, "VIVO SPM": 102816.76}, "2026-W03": {"MILETO": 16249.78, "VITAL": 152950.8, "VIVO N3": 0, "VIVO REPARO": 214615.72, "TIM": 2148.48, "VIVO SPM": 96627.8}, "2026-W04": {"MILETO": 0, "VITAL": 158210.7, "VIVO N3": 0, "VIVO REPARO": 242737.05, "TIM": 268.56, "VIVO SPM": 93067.18}, "2026-W05": {"MILETO": 48804.8, "VITAL": 160811.1, "VIVO N3": 22804.57, "VIVO REPARO": 339049.39, "TIM": 18099.09, "VIVO SPM": 89789.13}, "2026-W06": {"MILETO": 17747.2, "VITAL": 190085.3, "VIVO N3": 0, "VIVO REPARO": 225392.61, "TIM": 16563.05, "VIVO SPM": 120793.04}, "2026-W07": {"MILETO": 22184.0, "VITAL": 195561.9, "VIVO N3": 0, "VIVO REPARO": 203180.27, "TIM": 19121.05, "VIVO SPM": 118998.45}, "2026-W08": {"MILETO": 9844.15, "VITAL": 145267.8, "VIVO N3": 0, "VIVO REPARO": 135967.75, "TIM": 15092.2, "VIVO SPM": 120695.43}, "2026-W09": {"MILETO": 30308.89, "VITAL": 209194.3, "VIVO N3": 0, "VIVO REPARO": 244322.32, "TIM": 20001.1, "VIVO SPM": 106158.3}, "2026-W10": {"MILETO": 0, "VITAL": 210730.9, "VIVO N3": 0, "VIVO REPARO": 296022.74, "TIM": 23202.9, "VIVO SPM": 143457.02}, "2026-W11": {"MILETO": 0, "VITAL": 230884.0, "VIVO N3": 0, "VIVO REPARO": 210988.43, "TIM": 21132.3, "VIVO SPM": 179590.07}, "2026-W12": {"MILETO": 0, "VITAL": 205825.6, "VIVO N3": 0, "VIVO REPARO": 174773.08, "TIM": 15651.3, "VIVO SPM": 108404.64}, "2026-W13": {"MILETO": 0, "VITAL": 245836.3, "VIVO N3": 0, "VIVO REPARO": 260689.57, "TIM": 19000.8, "VIVO SPM": 122525.86}}, "by_warehouse": {"2026-W01": {"Backoffice TIM": 738.54, "JDI Remanufatura": 0, "Jaguare": 22509.83, "Jundiaí": 24839.0, "Reparo Terceiros": 27216.75, "Rio de Janeiro (Remanufatura)": 0, "SPM BBN": 0, "SPM Regional SP": 23208.89, "Sta Rita": 0}, "2026-W02": {"Backoffice TIM": 604.26, "JDI Remanufatura": 0, "Jaguare": 20116.43, "Jundiaí": 33987.16, "Reparo Terceiros": 48520.67, "Rio de Janeiro (Remanufatura)": 243357.7, "SPM BBN": 0, "SPM Regional SP": 102816.76, "Sta Rita": 15603.2}, "2026-W03": {"Backoffice TIM": 2148.48, "JDI Remanufatura": 0, "Jaguare": 34274.31, "Jundiaí": 46566.89, "Reparo Terceiros": 22971.18, "Rio de Janeiro (Remanufatura)": 169200.58, "SPM BBN": 0, "SPM Regional SP": 96627.8, "Sta Rita": 110803.34}, "2026-W04": {"Backoffice TIM": 268.56, "JDI Remanufatura": 0, "Jaguare": 9509.77, "Jundiaí": 60479.5, "Reparo Terceiros": 98677.93, "Rio de Janeiro (Remanufatura)": 158210.7, "SPM BBN": 0, "SPM Regional SP": 93067.18, "Sta Rita": 74069.85}, "2026-W05": {"Backoffice TIM": 18099.09, "JDI Remanufatura": 22804.57, "Jaguare": 27397.43, "Jundiaí": 103307.53, "Reparo Terceiros": 103664.64, "Rio de Janeiro (Remanufatura)": 209615.9, "SPM BBN": 0, "SPM Regional SP": 89789.13, "Sta Rita": 104679.79}, "2026-W06": {"Backoffice TIM": 16563.05, "JDI Remanufatura": 0, "Jaguare": 13212.68, "Jundiaí": 49740.58, "Reparo Terceiros": 97169.87, "Rio de Janeiro (Remanufatura)": 207832.5, "SPM BBN": 8317.97, "SPM Regional SP": 112475.07, "Sta Rita": 65269.48}, "2026-W07": {"Backoffice TIM": 19121.05, "JDI Remanufatura": 0, "Jaguare": 24328.18, "Jundiaí": 43580.8, "Reparo Terceiros": 34487.78, "Rio de Janeiro (Remanufatura)": 217745.9, "SPM BBN": 29001.66, "SPM Regional SP": 89996.79, "Sta Rita": 100783.51}, "2026-W08": {"Backoffice TIM": 15092.2, "JDI Remanufatura": 0, "Jaguare": 15280.55, "Jundiaí": 69288.9, "Reparo Terceiros": 5120.07, "Rio de Janeiro (Remanufatura)": 155111.95, "SPM BBN": 18070.42, "SPM Regional SP": 102625.01, "Sta Rita": 46278.23}, "2026-W09": {"Backoffice TIM": 20001.1, "JDI Remanufatura": 0, "Jaguare": 28621.1, "Jundiaí": 147175.39, "Reparo Terceiros": 1977.96, "Rio de Janeiro (Remanufatura)": 239503.19, "SPM BBN": 8317.97, "SPM Regional SP": 97840.33, "Sta Rita": 66547.87}, "2026-W10": {"Backoffice TIM": 23202.9, "JDI Remanufatura": 0, "Jaguare": 5882.62, "Jundiaí": 133849.66, "Reparo Terceiros": 10191.76, "Rio de Janeiro (Remanufatura)": 210730.9, "SPM BBN": 51597.99, "SPM Regional SP": 91859.03, "Sta Rita": 146098.7}, "2026-W11": {"Backoffice TIM": 21132.3, "JDI Remanufatura": 0, "Jaguare": 28744.56, "Jundiaí": 127309.66, "Reparo Terceiros": 37189.66, "Rio de Janeiro (Remanufatura)": 230884.0, "SPM BBN": 78464.54, "SPM Regional SP": 101125.53, "Sta Rita": 17744.55}, "2026-W12": {"Backoffice TIM": 15651.3, "JDI Remanufatura": 0, "Jaguare": 11255.77, "Jundiaí": 30221.43, "Reparo Terceiros": 14276.72, "Rio de Janeiro (Remanufatura)": 205825.6, "SPM BBN": 14500.83, "SPM Regional SP": 93903.81, "Sta Rita": 119019.16}, "2026-W13": {"Backoffice TIM": 19000.8, "JDI Remanufatura": 0, "Jaguare": 0, "Jundiaí": 83834.24, "Reparo Terceiros": 54086.68, "Rio de Janeiro (Remanufatura)": 245836.3, "SPM BBN": 31136.77, "SPM Regional SP": 91389.09, "Sta Rita": 122768.65}}}, "monthly": {"total": {"2026-01": 2130197.37, "2026-02": 2178502.49, "2026-03": 2471413.96}, "by_pmo": {"2026-01": {"MILETO": 109422.58, "TIM": 21014.82, "VITAL": 670962.3, "VIVO N3": 22804.57, "VIVO REPARO": 902843.41, "VIVO SPM": 403149.69}, "2026-02": {"MILETO": 80084.24, "TIM": 71048.45, "VITAL": 740109.3, "VIVO N3": 0, "VIVO REPARO": 820649.16, "VIVO SPM": 466611.34}, "2026-03": {"MILETO": 0, "TIM": 79291.8, "VITAL": 893276.8, "VIVO N3": 0, "VIVO REPARO": 942473.82, "VIVO SPM": 556371.54}}, "by_warehouse": {"2026-01": {"Backoffice TIM": 21014.82, "JDI Remanufatura": 22804.57, "Jaguare": 91297.94, "Jundiaí": 232554.87, "Reparo Terceiros": 273834.42, "Rio de Janeiro (Remanufatura)": 780384.88, "SPM BBN": 0, "SPM Regional SP": 403149.69, "Sta Rita": 305156.18}, "2026-02": {"Backoffice TIM": 71048.45, "JDI Remanufatura": 0, "Jaguare": 81442.51, "Jundiaí": 321571.88, "Reparo Terceiros": 138755.68, "Rio de Janeiro (Remanufatura)": 820193.54, "SPM BBN": 63708.02, "SPM Regional SP": 402903.32, "Sta Rita": 278879.09}, "2026-03": {"Backoffice TIM": 79291.8, "JDI Remanufatura": 0, "Jaguare": 45882.95, "Jundiaí": 375214.99, "Reparo Terceiros": 115744.82, "Rio de Janeiro (Remanufatura)": 893276.8, "SPM BBN": 175700.13, "SPM Regional SP": 380671.41, "Sta Rita": 405631.06}}}};
-
-// Estado atual do dashboard (alterado pelos filtros e botões)
-let currentFilter = 'Todos';   // Filtro de PMO ativo
-let currentView   = 'weekly';  // Visualização: 'weekly' ou 'monthly'
-let weeklyTarget  = DATA.weekly_target;  // Meta semanal (editável pelo usuário)
-
-// Paleta de cores por PMO
-const PMO_COLORS = {
-  'TIM':'#00a8e0','VIVO REPARO':'#c0392b','VITAL':'#2980b9','MILETO':'#8e44ad',
-  'VIVO N3':'#27ae60','VIVO SPM':'#f39c12'
-};
-
-// Paleta de cores para o gráfico de Warehouses
-const WH_COLORS = ['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#1abc9c','#e67e22','#3498db'];
-
-// Mapeamento de número do mês para abreviação em português
-const MONTH_NAMES = {'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun',
-                      '07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
-
-// ── Funções utilitárias de formatação ────────────────────────────────────────
-
-// Formata número para moeda brasileira: 1234567.89 → "R$ 1.234.567,89"
-function fmtBRL(v) {
-  if(v==null||isNaN(v)) return 'R$ 0,00';
-  return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+// ── AUTENTICAÇÃO (SHA-256 via Web Crypto API) ─────────────────────────────────
+const SENHA_HASH = '9a26bb2cee40647c11708d8a4052d558a545e2e5c91864b86e1e5f63f88592aa';
+async function sha256(msg) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-
-// Formata número abreviado: 1234567 → "1,2M" | 12345 → "12K"
-function fmtK(v) {
-  if(v>=1000000) return (v/1000000).toLocaleString('pt-BR',{maximumFractionDigits:1})+'M';
-  if(v>=1000)    return (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+'K';
-  return v.toLocaleString('pt-BR',{maximumFractionDigits:0});
+async function verificarSenha() {
+  const input = document.getElementById('senhaInput').value;
+  const hash  = await sha256(input);
+  if (hash === SENHA_HASH) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('dashContent').style.display  = 'block';
+    sessionStorage.setItem('bi_auth', SENHA_HASH);
+    renderAll();
+  } else {
+    const err = document.getElementById('loginErro');
+    err.textContent = 'Senha incorreta. Tente novamente.';
+    document.getElementById('senhaInput').value = '';
+    document.getElementById('senhaInput').focus();
+    setTimeout(() => err.textContent = '', 3000);
+  }
 }
-
-// Calcula variação percentual de b para a
-function pct(a,b) { return b?((a-b)/b*100):0; }
-
-// Formata variação percentual com sinal: 5.3 → "+5.3%" | -2.1 → "-2.1%"
-function pctStr(v) { return (v>=0?'+':'')+v.toFixed(1)+'%'; }
-
-// Formata mês: "2026-01" → "Jan/26"
-function fmtMonth(m) { var p=m.split('-'); return MONTH_NAMES[p[1]]+'/'+p[0].slice(2); }
-
-// Formata semana: "2026-W01" → "W01"
-function fmtWeek(w) { return w.replace('2026-',''); }
-
-// ── Funções de acesso aos dados com filtro de PMO ────────────────────────────
-
-// Retorna o faturamento de uma semana respeitando o filtro ativo
-function getWVal(wk) {
-  if(currentFilter==='Todos') return DATA.weekly.total[wk]||0;
-  return (DATA.weekly.by_pmo[wk]||{})[currentFilter]||0;
-}
-
-// Retorna o faturamento de um mês respeitando o filtro ativo
-function getMVal(mo) {
-  if(currentFilter==='Todos') return DATA.monthly.total[mo]||0;
-  return (DATA.monthly.by_pmo[mo]||{})[currentFilter]||0;
-}
-
-// ── Layout base do Plotly (tema escuro compartilhado por todos os gráficos) ──
-const layoutBase = {
-  paper_bgcolor:'transparent', plot_bgcolor:'transparent',
-  font:{color:'#b0c4de',size:11},
-  margin:{l:60,r:20,t:10,b:40},
-  xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10}},
-  yaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10},tickprefix:'R$ ',separatethousands:true},
-  legend:{orientation:'h',y:-0.15,font:{size:10}},
-  hovermode:'x unified'
-};
-
-// ── CARDS: KPIs principais no topo do dashboard ──────────────────────────────
-function renderCards() {
-  const weeks=DATA.weeks, months=DATA.months;
-  let totalAcum=0; months.forEach(m=>totalAcum+=getMVal(m));
-  const lw=weeks[weeks.length-1], pw=weeks[weeks.length-2];
-  const lwv=getWVal(lw), pwv=getWVal(pw), wvar=pct(lwv,pwv);
-  const lm=months[months.length-1], pm=months.length>1?months[months.length-2]:null;
-  const lmv=getMVal(lm), pmv=pm?getMVal(pm):0, mvar=pm?pct(lmv,pmv):0;
-  const mpct=weeklyTarget>0?(lwv/weeklyTarget*100):0;
-  const mc=mpct>=100?'#27ae60':mpct>=80?'#f39c12':'#e74c3c';
-  let sw=0,sumW=0; weeks.forEach(w=>{const v=getWVal(w);if(v>0){sw++;sumW+=v;}});
-  const avg=sw>0?sumW/sw:0;
-  document.getElementById('cardsContainer').innerHTML=`
-    <div class="card">
-      <div class="label">Faturamento Acumulado 2026</div>
-      <div class="value">${fmtBRL(totalAcum)}</div>
-      <div class="sub neutral">${months.length} meses</div>
-    </div>
-    <div class="card">
-      <div class="label">Último Mês (${fmtMonth(lm)})</div>
-      <div class="value">${fmtBRL(lmv)}</div>
-      <div class="sub ${mvar>=0?'up':'down'}">${pm?pctStr(mvar)+' vs '+fmtMonth(pm):''}</div>
-    </div>
-    <div class="card">
-      <div class="label">Última Semana (${fmtWeek(lw)})</div>
-      <div class="value">${fmtBRL(lwv)}</div>
-      <div class="sub ${wvar>=0?'up':'down'}">${pctStr(wvar)} vs ${fmtWeek(pw)}</div>
-    </div>
-    <div class="card">
-      <div class="label">Média Semanal</div>
-      <div class="value">${fmtBRL(avg)}</div>
-      <div class="sub neutral">${sw} semanas com faturamento</div>
-    </div>
-    <div class="card meta-card">
-      <div class="label">Meta Semanal</div>
-      <div class="value">${fmtBRL(weeklyTarget)}</div>
-      <div class="sub" style="color:${mc}">${fmtWeek(lw)}: ${mpct.toFixed(1)}% da meta</div>
-      <div class="bar-bg"><div class="bar-fill" style="width:${Math.min(mpct,100)}%;background:${mc};"></div></div>
-    </div>`;
-}
-
-// ── GRÁFICO: Evolução do Faturamento (barras + linha de variação %) ───────────
-function renderEvolution() {
-  const div=document.getElementById('evolutionChart');
-  const isW=currentView==='weekly';
-  const keys=isW?DATA.weeks:DATA.months;
-  const labels=keys.map(k=>isW?fmtWeek(k):fmtMonth(k));
-  const yv=keys.map(k=>isW?getWVal(k):getMVal(k));
-  const vari=[0,...yv.slice(1).map((v,i)=>pct(v,yv[i]))];
-  const vtxt=vari.map((v,i)=>i===0?'':pctStr(v));
-  // Barras verdes quando acima da meta semanal; vermelhas caso contrário
-  const bc=yv.map(v=>isW&&v>=weeklyTarget?'#27ae60':'#c0392b');
-  const traces=[
-    {x:labels,y:yv,type:'bar',name:'Faturamento',marker:{color:bc,opacity:0.85},
-      text:yv.map(v=>fmtK(v)),textposition:'outside',textfont:{size:9,color:'#8899aa'},
-      hovertemplate:'%{x}<br>R$ %{y:,.2f}<extra></extra>'},
-    {x:labels,y:vari,type:'scatter',mode:'lines+markers+text',name:'Variação %',yaxis:'y2',
-      line:{color:'#f39c12',width:2},marker:{size:5,color:'#f39c12'},
-      text:vtxt,textposition:'top center',textfont:{size:9,color:'#f39c12'},
-      hovertemplate:'%{x}: %{text}<extra></extra>'},
-  ];
-  // Linha pontilhada da meta — exibida apenas na view semanal
-  if(isW) traces.push({x:labels,y:labels.map(()=>weeklyTarget),type:'scatter',mode:'lines',
-    name:'Meta',line:{color:'#fff',width:1,dash:'dot'},hoverinfo:'skip'});
-  const layout={...layoutBase,
-    yaxis:{...layoutBase.yaxis,title:'Faturamento (R$)'},
-    yaxis2:{overlaying:'y',side:'right',showgrid:false,ticksuffix:'%',
-      gridcolor:'transparent',linecolor:'transparent',tickfont:{size:9,color:'#f39c12'},zeroline:false},
-    barmode:'group',showlegend:true};
-  Plotly.react(div,traces,layout,{responsive:true,displayModeBar:false});
-}
-
-// ── GRÁFICO: Faturamento por PMO (barras empilhadas) ─────────────────────────
-function renderPMO() {
-  const div=document.getElementById('pmoChart');
-  const isW=currentView==='weekly';
-  const keys=isW?DATA.weeks:DATA.months;
-  const labels=keys.map(k=>isW?fmtWeek(k):fmtMonth(k));
-  const bp=isW?DATA.weekly.by_pmo:DATA.monthly.by_pmo;
-  const pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];
-  const traces=pmos.map(p=>({
-    x:labels,y:keys.map(k=>(bp[k]||{})[p]||0),type:'bar',name:p,
-    marker:{color:PMO_COLORS[p]||'#666'},
-    hovertemplate:p+'<br>R$ %{y:,.2f}<extra></extra>'
-  }));
-  Plotly.react(div,traces,{...layoutBase,barmode:'stack',showlegend:true},{responsive:true,displayModeBar:false});
-}
-
-// ── GRÁFICO: Faturamento por Warehouse (barras horizontais, ranking) ──────────
-function renderWarehouse() {
-  const div=document.getElementById('whChart');
-  // Acumula o total de cada warehouse somando todos os meses
-  let totals={};
-  DATA.warehouses.forEach(w=>{totals[w]=0;});
-  DATA.months.forEach(m=>{
-    const wd=DATA.monthly.by_warehouse[m]||{};
-    DATA.warehouses.forEach(w=>{totals[w]+=(wd[w]||0);});
-  });
-  // Ordena crescente (Plotly exibe de baixo para cima — maior fica no topo)
-  const items=Object.entries(totals).filter(([,v])=>v>0).sort((a,b)=>a[1]-b[1]);
-  const trace={
-    y:items.map(x=>x[0]),x:items.map(x=>x[1]),type:'bar',orientation:'h',
-    marker:{color:items.map((_,i)=>WH_COLORS[i%WH_COLORS.length]),opacity:0.9},
-    text:items.map(x=>fmtBRL(x[1])),textposition:'outside',
-    textfont:{size:10,color:'#b0c4de'},
-    hovertemplate:'%{y}<br>%{text}<extra></extra>',cliponaxis:false
-  };
-  const layout={paper_bgcolor:'transparent',plot_bgcolor:'transparent',
-    font:{color:'#b0c4de',size:11},margin:{l:190,r:100,t:25,b:30},
-    xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:9,color:'#5a7a9a'},showticklabels:false,zeroline:false},
-    yaxis:{tickfont:{size:11,color:'#d0d8e0'},gridcolor:'transparent',linecolor:'transparent',automargin:true},
-    showlegend:false,
-    annotations:[{x:0.5,y:1.06,xref:'paper',yref:'paper',text:'Acumulado 2026',showarrow:false,font:{size:10,color:'#8899aa'}}]
-  };
-  Plotly.react(div,[trace],layout,{responsive:true,displayModeBar:false});
-}
-
-// ── TABELAS: Detalhamento mensal por PMO e por Warehouse ──────────────────────
-function renderTables() {
-  const pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];
-
-  // Tabela por PMO
-  let h='<table><tr><th>Mês</th>'+pmos.map(p=>'<th>'+p+'</th>').join('')+'<th>Total</th></tr>';
-  DATA.months.forEach(m=>{
-    h+='<tr><td>'+fmtMonth(m)+'</td>';
-    let rt=0;
-    pmos.forEach(p=>{const v=(DATA.monthly.by_pmo[m]||{})[p]||0;rt+=v;h+='<td>'+fmtBRL(v)+'</td>';});
-    h+='<td style="font-weight:600;color:#fff">'+fmtBRL(rt)+'</td></tr>';
-  });
-  h+='<tr style="border-top:2px solid #2a3f5f;font-weight:600;color:#fff"><td>Total</td>';
-  let gt=0;
-  pmos.forEach(p=>{let s=0;DATA.months.forEach(m=>s+=(DATA.monthly.by_pmo[m]||{})[p]||0);gt+=s;h+='<td>'+fmtBRL(s)+'</td>';});
-  h+='<td>'+fmtBRL(gt)+'</td></tr></table>';
-  document.getElementById('monthlyTable').innerHTML=h;
-
-  // Tabela por Warehouse
-  let h2='<table><tr><th>Mês</th>'+DATA.warehouses.map(w=>'<th style="font-size:9px">'+w+'</th>').join('')+'<th>Total</th></tr>';
-  DATA.months.forEach(m=>{
-    h2+='<tr><td>'+fmtMonth(m)+'</td>';
-    let rt=0;
-    DATA.warehouses.forEach(w=>{const v=(DATA.monthly.by_warehouse[m]||{})[w]||0;rt+=v;h2+='<td>'+(v>0?fmtK(v):'-')+'</td>';});
-    h2+='<td style="font-weight:600;color:#fff">'+fmtBRL(rt)+'</td></tr>';
-  });
-  h2+='</table>';
-  document.getElementById('whTable').innerHTML=h2;
-}
-
-// ── Funções de interação do usuário ──────────────────────────────────────────
-
-// Ativa o filtro de PMO e redesenha tudo
-function setFilter(f) {
-  currentFilter=f;
-  document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===f));
-  renderAll();
-}
-
-// Alterna entre visualização semanal e mensal
-function setView(v) {
-  currentView=v;
-  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(v==='weekly'?'Semanal':'Mensal')));
-  renderAll();
-}
-
-// Atualiza a meta semanal quando o usuário edita o campo no header
-function updateMeta() {
-  const raw=document.getElementById('metaInput').value.replace(/[^\d,.]/g,'').replace(/\./g,'').replace(',','.');
-  weeklyTarget=parseFloat(raw)||375000;
-  document.getElementById('metaInput').value=weeklyTarget.toLocaleString('pt-BR',{minimumFractionDigits:2});
-  renderAll();
-}
-
-// Renderiza todos os componentes (chamado na inicialização e a cada interação)
-function renderAll() { renderCards(); renderEvolution(); renderPMO(); renderWarehouse(); renderTables(); }
-
-// Inicialização — renderiza o dashboard ao carregar a página
-renderAll();
+(async function() {
+  const salvo = sessionStorage.getItem('bi_auth');
+  if (salvo && salvo === SENHA_HASH) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('dashContent').style.display  = 'block';
+    renderAll();
+  }
+})();
 </script>
 </body>
 </html>
