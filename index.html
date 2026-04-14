@@ -62,6 +62,8 @@ body { font-family:'Segoe UI',Tahoma,sans-serif; background:#0a1628; color:#e0e0
 .card.meta-card .bar-fill { height:6px; border-radius:3px; transition:width .5s; }
 .chart-section { padding:8px 28px 16px; }
 .chart-box { background:#0f2240; border-radius:10px; padding:16px; margin-bottom:16px; }
+#evolutionChart .plot-container .trace.bars .point { cursor:pointer !important; }
+#evolutionChart { cursor:pointer; }
 .chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
 .chart-title { font-size:14px; font-weight:600; color:#fff; }
 .toggle-group { display:flex; gap:0; }
@@ -151,7 +153,7 @@ tr:hover td { background:rgba(192,57,43,0.06); }
   </div>
 </div>
 
-<div class="filters">
+<div class="filters" id="pmoFilters">
   <label>Cliente / PMO:</label>
   <button class="fbtn active" onclick="setFilter('Todos')">Todos</button>
   <button class="fbtn" onclick="setFilter('VIVO REPARO')">VIVO REPARO</button>
@@ -162,6 +164,12 @@ tr:hover td { background:rgba(192,57,43,0.06); }
   <button class="fbtn" onclick="setFilter('TIM')">TIM</button>
 </div>
 
+<div id="activeFilterBanner" style="display:none;padding:6px 28px;">
+  <span style="background:#f39c12;color:#0a1628;padding:5px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;" onclick="clearPeriodFilter()">
+    <span id="activeFilterText"></span> &times;
+  </span>
+  <span style="font-size:11px;color:#8899aa;margin-left:10px;">Clique para remover o filtro</span>
+</div>
 <div class="cards" id="cardsContainer"></div>
 
 <div class="chart-section">
@@ -200,29 +208,196 @@ tr:hover td { background:rgba(192,57,43,0.06); }
 </div><!-- /dashContent -->
 
 <script>
-const DATA = {"weekly_target": 375000, "pmos": ["MILETO", "TIM", "VITAL", "VIVO N3", "VIVO REPARO", "VIVO SPM"], "warehouses": ["Backoffice TIM", "JDI Remanufatura", "Jaguare", "Jundiaí", "Reparo Terceiros", "Rio de Janeiro (Remanufatura)", "SPM BBN", "SPM Regional SP", "Sta Rita"], "weeks": ["2026-W01", "2026-W02", "2026-W03", "2026-W04", "2026-W05", "2026-W06", "2026-W07", "2026-W08", "2026-W09", "2026-W10", "2026-W11", "2026-W12", "2026-W13", "2026-W14", "2026-W15"], "months": ["2026-01", "2026-02", "2026-03", "2026-04"], "weekly": {"total": {"2026-W02": 461318.09, "2026-W03": 482637.28, "2026-W04": 491748.39, "2026-W05": 679108.06, "2026-W06": 562951.89, "2026-W07": 535874.51, "2026-W08": 411679.43, "2026-W09": 606562.18, "2026-W10": 628942.98, "2026-W11": 576213.17, "2026-W12": 498773.69, "2026-W13": 671130.52, "2026-W14": 367910.67, "2026-W15": 348997.69, "2026-W41": 0.0, "2026-W01": 31636.56}, "by_pmo": {"2026-W02": {"VIVO REPARO": 118227.46, "MILETO": 44368.0, "VITAL": 198989.7, "VIVO SPM": 99732.93, "TIM": 0, "VIVO N3": 0}, "2026-W03": {"VIVO REPARO": 214615.72, "MILETO": 16249.78, "VITAL": 152950.8, "VIVO SPM": 98820.98, "TIM": 0, "VIVO N3": 0}, "2026-W04": {"VIVO REPARO": 244131.74, "VITAL": 158210.7, "VIVO SPM": 89405.95, "MILETO": 0, "TIM": 0, "VIVO N3": 0}, "2026-W05": {"VIVO REPARO": 339049.39, "MILETO": 48804.8, "VITAL": 160811.1, "VIVO N3": 22804.57, "TIM": 15782.5, "VIVO SPM": 91855.7}, "2026-W06": {"VIVO REPARO": 225392.61, "MILETO": 17747.2, "VITAL": 190085.3, "TIM": 14124.0, "VIVO SPM": 115602.78, "VIVO N3": 0}, "2026-W07": {"VIVO REPARO": 204531.78, "MILETO": 22184.0, "VITAL": 195561.9, "TIM": 19367.0, "VIVO SPM": 94229.83, "VIVO N3": 0}, "2026-W08": {"VIVO REPARO": 136750.45, "MILETO": 9844.15, "VITAL": 145267.8, "TIM": 14017.0, "VIVO SPM": 105800.03, "VIVO N3": 0}, "2026-W09": {"VIVO REPARO": 249867.18, "MILETO": 30308.89, "VITAL": 209194.3, "TIM": 17762.0, "VIVO SPM": 99429.81, "VIVO N3": 0}, "2026-W10": {"VIVO REPARO": 296022.74, "VITAL": 210730.9, "TIM": 21079.0, "VIVO SPM": 101110.34, "MILETO": 0, "VIVO N3": 0}, "2026-W11": {"VIVO REPARO": 210988.43, "VITAL": 230884.0, "TIM": 20276.5, "VIVO SPM": 114064.24, "MILETO": 0, "VIVO N3": 0}, "2026-W12": {"VIVO REPARO": 178875.58, "VITAL": 205825.6, "TIM": 13963.5, "VIVO SPM": 100109.01, "MILETO": 0, "VIVO N3": 0}, "2026-W13": {"VIVO REPARO": 278247.56, "VITAL": 275662.1, "TIM": 16531.5, "VIVO SPM": 100689.36, "MILETO": 0, "VIVO N3": 0}, "2026-W14": {"VIVO REPARO": 146162.67, "VITAL": 121943.0, "TIM": 17013.0, "VIVO SPM": 82792.0, "MILETO": 0, "VIVO N3": 0}, "2026-W15": {"VIVO REPARO": 36032.28, "VITAL": 199304.9, "TIM": 14873.0, "VIVO SPM": 98787.51, "MILETO": 0, "VIVO N3": 0}, "2026-W41": {"VIVO REPARO": 0.0}, "2026-W01": {"VIVO SPM": 31636.56, "MILETO": 0, "TIM": 0, "VITAL": 0, "VIVO N3": 0, "VIVO REPARO": 0}}, "by_warehouse": {"2026-W02": {"Jaguare": 20116.43, "Jundiaí": 33987.16, "Reparo Terceiros": 48520.67, "Sta Rita": 15603.2, "Rio de Janeiro (Remanufatura)": 243357.7, "SPM Regional SP": 99732.93, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W03": {"Jaguare": 34274.31, "Jundiaí": 46566.89, "Reparo Terceiros": 22971.18, "Sta Rita": 110803.34, "Rio de Janeiro (Remanufatura)": 169200.58, "SPM Regional SP": 98820.98, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W04": {"Jaguare": 10904.46, "Jundiaí": 60479.5, "Reparo Terceiros": 98677.93, "Sta Rita": 74069.85, "Rio de Janeiro (Remanufatura)": 158210.7, "SPM Regional SP": 89405.95, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W05": {"Jaguare": 27397.43, "Jundiaí": 103307.53, "Reparo Terceiros": 103664.64, "Sta Rita": 104679.79, "Rio de Janeiro (Remanufatura)": 209615.9, "JDI Remanufatura": 22804.57, "Backoffice TIM": 15782.5, "SPM BBN": 652.51, "SPM Regional SP": 91203.19}, "2026-W06": {"Jaguare": 13212.68, "Jundiaí": 49740.58, "Reparo Terceiros": 97169.87, "Sta Rita": 65269.48, "Rio de Janeiro (Remanufatura)": 207832.5, "Backoffice TIM": 14124.0, "SPM BBN": 3915.04, "SPM Regional SP": 111687.74, "JDI Remanufatura": 0}, "2026-W07": {"Jaguare": 25679.69, "Jundiaí": 43580.8, "Reparo Terceiros": 34487.78, "Sta Rita": 100783.51, "Rio de Janeiro (Remanufatura)": 217745.9, "Backoffice TIM": 19367.0, "SPM BBN": 3915.04, "SPM Regional SP": 90314.79, "JDI Remanufatura": 0}, "2026-W08": {"Jaguare": 16063.25, "Jundiaí": 69288.9, "Reparo Terceiros": 5120.07, "Sta Rita": 46278.23, "Rio de Janeiro (Remanufatura)": 155111.95, "Backoffice TIM": 14017.0, "SPM BBN": 4567.55, "SPM Regional SP": 101232.48, "JDI Remanufatura": 0}, "2026-W09": {"Jaguare": 34165.96, "Jundiaí": 147175.39, "Reparo Terceiros": 1977.96, "Sta Rita": 66547.87, "Rio de Janeiro (Remanufatura)": 239503.19, "Backoffice TIM": 17762.0, "SPM BBN": 6525.07, "SPM Regional SP": 92904.74, "JDI Remanufatura": 0}, "2026-W10": {"Jaguare": 5882.62, "Jundiaí": 133849.66, "Reparo Terceiros": 10191.76, "Sta Rita": 146098.7, "Rio de Janeiro (Remanufatura)": 210730.9, "Backoffice TIM": 21079.0, "SPM BBN": 8482.59, "SPM Regional SP": 92627.75, "JDI Remanufatura": 0}, "2026-W11": {"Jaguare": 28744.56, "Jundiaí": 127309.66, "Reparo Terceiros": 37189.66, "Sta Rita": 17744.55, "Rio de Janeiro (Remanufatura)": 230884.0, "Backoffice TIM": 20276.5, "SPM BBN": 15660.17, "SPM Regional SP": 98404.07, "JDI Remanufatura": 0}, "2026-W12": {"Jaguare": 15358.27, "Jundiaí": 30221.43, "Reparo Terceiros": 14276.72, "Sta Rita": 119019.16, "Rio de Janeiro (Remanufatura)": 205825.6, "Backoffice TIM": 13963.5, "SPM BBN": 5872.56, "SPM Regional SP": 94236.45, "JDI Remanufatura": 0}, "2026-W13": {"Jaguare": 17557.99, "Jundiaí": 83834.24, "Reparo Terceiros": 54086.68, "Sta Rita": 122768.65, "Rio de Janeiro (Remanufatura)": 275662.1, "Backoffice TIM": 16531.5, "SPM BBN": 6525.07, "SPM Regional SP": 94164.29, "JDI Remanufatura": 0}, "2026-W14": {"Jaguare": 1456.88, "Jundiaí": 0.0, "Reparo Terceiros": 53214.49, "Sta Rita": 91491.3, "Rio de Janeiro (Remanufatura)": 121943.0, "Backoffice TIM": 17013.0, "SPM BBN": 4567.55, "SPM Regional SP": 78224.45, "JDI Remanufatura": 0}, "2026-W15": {"Jaguare": 0.0, "Reparo Terceiros": 4518.53, "Sta Rita": 31513.75, "Rio de Janeiro (Remanufatura)": 199304.9, "Backoffice TIM": 14873.0, "SPM BBN": 22837.74, "SPM Regional SP": 75949.77, "JDI Remanufatura": 0, "Jundiaí": 0}, "2026-W41": {"Jundiaí": 0.0}, "2026-W01": {"SPM Regional SP": 31636.56, "Backoffice TIM": 0, "JDI Remanufatura": 0, "Jaguare": 0, "Jundiaí": 0, "Reparo Terceiros": 0, "Rio de Janeiro (Remanufatura)": 0, "SPM BBN": 0, "Sta Rita": 0}}}, "monthly": {"total": {"2026-01": 2145795.87, "2026-02": 2117720.52, "2026-03": 2651479.73, "2026-04": 440488.99, "2026-10": 0.0}, "by_pmo": {"2026-01": {"VIVO REPARO": 916024.31, "MILETO": 109422.58, "VITAL": 670962.3, "VIVO N3": 22804.57, "TIM": 15782.5, "VIVO SPM": 410799.61}, "2026-02": {"VIVO REPARO": 816542.02, "MILETO": 80084.24, "VITAL": 740109.3, "TIM": 65270.0, "VIVO SPM": 415714.96, "VIVO N3": 0}, "2026-03": {"VIVO REPARO": 1018805.68, "VITAL": 1045045.6, "TIM": 88863.5, "VIVO SPM": 498764.95, "MILETO": 0, "VIVO N3": 0}, "2026-04": {"VIVO REPARO": 127523.58, "VITAL": 199304.9, "TIM": 14873.0, "VIVO SPM": 98787.51, "MILETO": 0, "VIVO N3": 0}, "2026-10": {"VIVO REPARO": 0.0}}, "by_warehouse": {"2026-01": {"Jaguare": 92692.63, "Jundiaí": 244341.08, "Reparo Terceiros": 273834.42, "Sta Rita": 305156.18, "Rio de Janeiro (Remanufatura)": 780384.88, "JDI Remanufatura": 22804.57, "Backoffice TIM": 15782.5, "SPM Regional SP": 410799.61, "SPM BBN": 0}, "2026-02": {"Jaguare": 89121.58, "Jundiaí": 309785.67, "Reparo Terceiros": 138755.68, "Sta Rita": 278879.09, "Rio de Janeiro (Remanufatura)": 820193.54, "Backoffice TIM": 65270.0, "SPM BBN": 19575.21, "SPM Regional SP": 396139.75, "JDI Remanufatura": 0}, "2026-03": {"Jaguare": 69000.32, "Jundiaí": 375214.99, "Reparo Terceiros": 168959.31, "Sta Rita": 405631.06, "Rio de Janeiro (Remanufatura)": 1045045.6, "Backoffice TIM": 88863.5, "SPM BBN": 41107.94, "SPM Regional SP": 457657.01, "JDI Remanufatura": 0}, "2026-04": {"Jundiaí": 0.0, "Sta Rita": 123005.05, "Jaguare": 0.0, "Reparo Terceiros": 4518.53, "Rio de Janeiro (Remanufatura)": 199304.9, "Backoffice TIM": 14873.0, "SPM BBN": 22837.74, "SPM Regional SP": 75949.77, "JDI Remanufatura": 0}, "2026-10": {"Jundiaí": 0.0}}}};
-let currentFilter='Todos', currentView='weekly', weeklyTarget=DATA.weekly_target;
+const DATA = {"weekly_target": 375000, "pmos": ["MILETO", "TIM", "VITAL", "VIVO N3", "VIVO REPARO", "VIVO SPM"], "warehouses": ["Backoffice TIM", "JDI Remanufatura", "Jaguare", "Jundiaí", "Reparo Terceiros", "Rio de Janeiro (Remanufatura)", "SPM BBN", "SPM Regional SP", "Sta Rita"], "weeks": ["2026-W01", "2026-W02", "2026-W03", "2026-W04", "2026-W05", "2026-W06", "2026-W07", "2026-W08", "2026-W09", "2026-W10", "2026-W11", "2026-W12", "2026-W13", "2026-W14", "2026-W15"], "months": ["2026-01", "2026-02", "2026-03", "2026-04"], "weekly": {"total": {"2026-W02": 461318.09, "2026-W03": 482637.28, "2026-W04": 491748.39, "2026-W05": 679108.06, "2026-W06": 562951.89, "2026-W07": 535874.51, "2026-W08": 411679.43, "2026-W09": 606562.18, "2026-W10": 628942.98, "2026-W11": 582228.59, "2026-W12": 498773.69, "2026-W13": 744860.38, "2026-W14": 432152.66, "2026-W15": 490415.2, "2026-W41": 0.0, "2026-W01": 31636.56}, "by_pmo": {"2026-W02": {"VIVO REPARO": 118227.46, "MILETO": 44368.0, "VITAL": 198989.7, "VIVO SPM": 99732.93, "TIM": 0, "VIVO N3": 0}, "2026-W03": {"VIVO REPARO": 214615.72, "MILETO": 16249.78, "VITAL": 152950.8, "VIVO SPM": 98820.98, "TIM": 0, "VIVO N3": 0}, "2026-W04": {"VIVO REPARO": 244131.74, "VITAL": 158210.7, "VIVO SPM": 89405.95, "MILETO": 0, "TIM": 0, "VIVO N3": 0}, "2026-W05": {"VIVO REPARO": 339049.39, "MILETO": 48804.8, "VITAL": 160811.1, "VIVO N3": 22804.57, "TIM": 15782.5, "VIVO SPM": 91855.7}, "2026-W06": {"VIVO REPARO": 225392.61, "MILETO": 17747.2, "VITAL": 190085.3, "TIM": 14124.0, "VIVO SPM": 115602.78, "VIVO N3": 0}, "2026-W07": {"VIVO REPARO": 204531.78, "MILETO": 22184.0, "VITAL": 195561.9, "TIM": 19367.0, "VIVO SPM": 94229.83, "VIVO N3": 0}, "2026-W08": {"VIVO REPARO": 136750.45, "MILETO": 9844.15, "VITAL": 145267.8, "TIM": 14017.0, "VIVO SPM": 105800.03, "VIVO N3": 0}, "2026-W09": {"VIVO REPARO": 249867.18, "MILETO": 30308.89, "VITAL": 209194.3, "TIM": 17762.0, "VIVO SPM": 99429.81, "VIVO N3": 0}, "2026-W10": {"VIVO REPARO": 296022.74, "VITAL": 210730.9, "TIM": 21079.0, "VIVO SPM": 101110.34, "MILETO": 0, "VIVO N3": 0}, "2026-W11": {"VIVO REPARO": 217003.85, "VITAL": 230884.0, "TIM": 20276.5, "VIVO SPM": 114064.24, "MILETO": 0, "VIVO N3": 0}, "2026-W12": {"VIVO REPARO": 178875.58, "VITAL": 205825.6, "TIM": 13963.5, "VIVO SPM": 100109.01, "MILETO": 0, "VIVO N3": 0}, "2026-W13": {"VIVO REPARO": 351977.42, "VITAL": 275662.1, "TIM": 16531.5, "VIVO SPM": 100689.36, "MILETO": 0, "VIVO N3": 0}, "2026-W14": {"VIVO REPARO": 210404.66, "VITAL": 121943.0, "TIM": 17013.0, "VIVO SPM": 82792.0, "MILETO": 0, "VIVO N3": 0}, "2026-W15": {"VIVO REPARO": 177449.79, "VITAL": 199304.9, "TIM": 14873.0, "VIVO SPM": 98787.51, "MILETO": 0, "VIVO N3": 0}, "2026-W41": {"VIVO REPARO": 0.0}, "2026-W01": {"VIVO SPM": 31636.56, "MILETO": 0, "TIM": 0, "VITAL": 0, "VIVO N3": 0, "VIVO REPARO": 0}}, "by_warehouse": {"2026-W02": {"Jaguare": 20116.43, "Jundiaí": 33987.16, "Reparo Terceiros": 48520.67, "Sta Rita": 15603.2, "Rio de Janeiro (Remanufatura)": 243357.7, "SPM Regional SP": 99732.93, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W03": {"Jaguare": 34274.31, "Jundiaí": 46566.89, "Reparo Terceiros": 22971.18, "Sta Rita": 110803.34, "Rio de Janeiro (Remanufatura)": 169200.58, "SPM Regional SP": 98820.98, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W04": {"Jaguare": 10904.46, "Jundiaí": 60479.5, "Reparo Terceiros": 98677.93, "Sta Rita": 74069.85, "Rio de Janeiro (Remanufatura)": 158210.7, "SPM Regional SP": 89405.95, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W05": {"Jaguare": 27397.43, "Jundiaí": 103307.53, "Reparo Terceiros": 103664.64, "Sta Rita": 104679.79, "Rio de Janeiro (Remanufatura)": 209615.9, "JDI Remanufatura": 22804.57, "Backoffice TIM": 15782.5, "SPM BBN": 652.51, "SPM Regional SP": 91203.19}, "2026-W06": {"Jaguare": 13212.68, "Jundiaí": 49740.58, "Reparo Terceiros": 97169.87, "Sta Rita": 65269.48, "Rio de Janeiro (Remanufatura)": 207832.5, "Backoffice TIM": 14124.0, "SPM BBN": 3915.04, "SPM Regional SP": 111687.74, "JDI Remanufatura": 0}, "2026-W07": {"Jaguare": 25679.69, "Jundiaí": 43580.8, "Reparo Terceiros": 34487.78, "Sta Rita": 100783.51, "Rio de Janeiro (Remanufatura)": 217745.9, "Backoffice TIM": 19367.0, "SPM BBN": 3915.04, "SPM Regional SP": 90314.79, "JDI Remanufatura": 0}, "2026-W08": {"Jaguare": 16063.25, "Jundiaí": 69288.9, "Reparo Terceiros": 5120.07, "Sta Rita": 46278.23, "Rio de Janeiro (Remanufatura)": 155111.95, "Backoffice TIM": 14017.0, "SPM BBN": 4567.55, "SPM Regional SP": 101232.48, "JDI Remanufatura": 0}, "2026-W09": {"Jaguare": 34165.96, "Jundiaí": 147175.39, "Reparo Terceiros": 1977.96, "Sta Rita": 66547.87, "Rio de Janeiro (Remanufatura)": 239503.19, "Backoffice TIM": 17762.0, "SPM BBN": 6525.07, "SPM Regional SP": 92904.74, "JDI Remanufatura": 0}, "2026-W10": {"Jaguare": 5882.62, "Jundiaí": 133849.66, "Reparo Terceiros": 10191.76, "Sta Rita": 146098.7, "Rio de Janeiro (Remanufatura)": 210730.9, "Backoffice TIM": 21079.0, "SPM BBN": 8482.59, "SPM Regional SP": 92627.75, "JDI Remanufatura": 0}, "2026-W11": {"Jaguare": 28744.56, "Jundiaí": 133325.08, "Reparo Terceiros": 37189.66, "Sta Rita": 17744.55, "Rio de Janeiro (Remanufatura)": 230884.0, "Backoffice TIM": 20276.5, "SPM BBN": 15660.17, "SPM Regional SP": 98404.07, "JDI Remanufatura": 0}, "2026-W12": {"Jaguare": 15358.27, "Jundiaí": 30221.43, "Reparo Terceiros": 14276.72, "Sta Rita": 119019.16, "Rio de Janeiro (Remanufatura)": 205825.6, "Backoffice TIM": 13963.5, "SPM BBN": 5872.56, "SPM Regional SP": 94236.45, "JDI Remanufatura": 0}, "2026-W13": {"Jaguare": 17557.99, "Jundiaí": 157564.1, "Reparo Terceiros": 54086.68, "Sta Rita": 122768.65, "Rio de Janeiro (Remanufatura)": 275662.1, "Backoffice TIM": 16531.5, "SPM BBN": 6525.07, "SPM Regional SP": 94164.29, "JDI Remanufatura": 0}, "2026-W14": {"Jaguare": 1456.88, "Jundiaí": 64241.99, "Reparo Terceiros": 53214.49, "Sta Rita": 91491.3, "Rio de Janeiro (Remanufatura)": 121943.0, "Backoffice TIM": 17013.0, "SPM BBN": 4567.55, "SPM Regional SP": 78224.45, "JDI Remanufatura": 0}, "2026-W15": {"Jaguare": 5289.88, "Jundiaí": 68422.4, "Reparo Terceiros": 27536.48, "Sta Rita": 76201.03, "Rio de Janeiro (Remanufatura)": 199304.9, "Backoffice TIM": 14873.0, "SPM BBN": 22837.74, "SPM Regional SP": 75949.77, "JDI Remanufatura": 0}, "2026-W41": {"Jundiaí": 0.0}, "2026-W01": {"SPM Regional SP": 31636.56, "Backoffice TIM": 0, "JDI Remanufatura": 0, "Jaguare": 0, "Jundiaí": 0, "Reparo Terceiros": 0, "Rio de Janeiro (Remanufatura)": 0, "SPM BBN": 0, "Sta Rita": 0}}}, "monthly": {"total": {"2026-01": 2145795.87, "2026-02": 2117720.52, "2026-03": 2795467.0, "2026-04": 581906.5, "2026-10": 0.0}, "by_pmo": {"2026-01": {"VIVO REPARO": 916024.31, "MILETO": 109422.58, "VITAL": 670962.3, "VIVO N3": 22804.57, "TIM": 15782.5, "VIVO SPM": 410799.61}, "2026-02": {"VIVO REPARO": 816542.02, "MILETO": 80084.24, "VITAL": 740109.3, "TIM": 65270.0, "VIVO SPM": 415714.96, "VIVO N3": 0}, "2026-03": {"VIVO REPARO": 1162792.95, "VITAL": 1045045.6, "TIM": 88863.5, "VIVO SPM": 498764.95, "MILETO": 0, "VIVO N3": 0}, "2026-04": {"VIVO REPARO": 268941.09, "VITAL": 199304.9, "TIM": 14873.0, "VIVO SPM": 98787.51, "MILETO": 0, "VIVO N3": 0}, "2026-10": {"VIVO REPARO": 0.0}}, "by_warehouse": {"2026-01": {"Jaguare": 92692.63, "Jundiaí": 244341.08, "Reparo Terceiros": 273834.42, "Sta Rita": 305156.18, "Rio de Janeiro (Remanufatura)": 780384.88, "JDI Remanufatura": 22804.57, "Backoffice TIM": 15782.5, "SPM Regional SP": 410799.61, "SPM BBN": 0}, "2026-02": {"Jaguare": 89121.58, "Jundiaí": 309785.67, "Reparo Terceiros": 138755.68, "Sta Rita": 278879.09, "Rio de Janeiro (Remanufatura)": 820193.54, "Backoffice TIM": 65270.0, "SPM BBN": 19575.21, "SPM Regional SP": 396139.75, "JDI Remanufatura": 0}, "2026-03": {"Jaguare": 69000.32, "Jundiaí": 519202.26, "Reparo Terceiros": 168959.31, "Sta Rita": 405631.06, "Rio de Janeiro (Remanufatura)": 1045045.6, "Backoffice TIM": 88863.5, "SPM BBN": 41107.94, "SPM Regional SP": 457657.01, "JDI Remanufatura": 0}, "2026-04": {"Sta Rita": 167692.33, "Jaguare": 5289.88, "Jundiaí": 68422.4, "Reparo Terceiros": 27536.48, "Rio de Janeiro (Remanufatura)": 199304.9, "Backoffice TIM": 14873.0, "SPM BBN": 22837.74, "SPM Regional SP": 75949.77, "JDI Remanufatura": 0}, "2026-10": {"Jundiaí": 0.0}}}, "week_to_month": {"2026-W01": "2026-01", "2026-W02": "2026-01", "2026-W03": "2026-01", "2026-W04": "2026-01", "2026-W05": "2026-01", "2026-W06": "2026-02", "2026-W07": "2026-02", "2026-W08": "2026-02", "2026-W09": "2026-02", "2026-W10": "2026-03", "2026-W11": "2026-03", "2026-W12": "2026-03", "2026-W13": "2026-03", "2026-W14": "2026-04", "2026-W15": "2026-04"}};
+let currentFilter='Todos',currentView='weekly',weeklyTarget=DATA.weekly_target;
+let currentMonth='Todos',currentWeek='Todos';
 const PMO_COLORS={'TIM':'#00a8e0','VIVO REPARO':'#c0392b','VITAL':'#2980b9','MILETO':'#8e44ad','VIVO N3':'#27ae60','VIVO SPM':'#f39c12'};
 const WH_COLORS=['#00a8e0','#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#1abc9c','#e67e22','#3498db'];
 const MONTH_NAMES={'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun','07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
+const WEEK_MONTH=DATA.week_to_month||{};
+
 function fmtBRL(v){if(v==null||isNaN(v))return'R$ 0,00';return'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtK(v){if(v>=1000000)return(v/1000000).toLocaleString('pt-BR',{maximumFractionDigits:1})+'M';if(v>=1000)return(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0})+'K';return v.toLocaleString('pt-BR',{maximumFractionDigits:0});}
 function pct(a,b){return b?((a-b)/b*100):0;}
 function pctStr(v){return(v>=0?'+':'')+v.toFixed(1)+'%';}
 function fmtMonth(m){var p=m.split('-');return MONTH_NAMES[p[1]]+'/'+p[0].slice(2);}
 function fmtWeek(w){return w.replace('2026-','');}
+
+/* ── Filtros: semanas e meses filtrados ── */
+function getFilteredWeeks(){
+  var w=DATA.weeks;
+  if(currentMonth!=='Todos') w=w.filter(function(x){return WEEK_MONTH[x]===currentMonth;});
+  if(currentWeek!=='Todos') w=[currentWeek];
+  return w;
+}
+function getFilteredMonths(){
+  var m=DATA.months;
+  if(currentWeek!=='Todos'){var wm=WEEK_MONTH[currentWeek];if(wm)m=m.filter(function(x){return x===wm;});return m;}
+  if(currentMonth!=='Todos') m=m.filter(function(x){return x===currentMonth;});
+  return m;
+}
 function getWVal(wk){if(currentFilter==='Todos')return DATA.weekly.total[wk]||0;return(DATA.weekly.by_pmo[wk]||{})[currentFilter]||0;}
 function getMVal(mo){if(currentFilter==='Todos')return DATA.monthly.total[mo]||0;return(DATA.monthly.by_pmo[mo]||{})[currentFilter]||0;}
 const layoutBase={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:60,r:20,t:10,b:40},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10}},yaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10},tickprefix:'R$ ',separatethousands:true},legend:{orientation:'h',y:-0.15,font:{size:10}},hovermode:'x unified'};
-function renderCards(){const weeks=DATA.weeks,months=DATA.months;let totalAcum=0;months.forEach(m=>totalAcum+=getMVal(m));const lw=weeks[weeks.length-1],pw=weeks[weeks.length-2];const lwv=getWVal(lw),pwv=getWVal(pw),wvar=pct(lwv,pwv);const lm=months[months.length-1],pm=months.length>1?months[months.length-2]:null;const lmv=getMVal(lm),mvar=pm?pct(lmv,getMVal(pm)):0;const mpct=weeklyTarget>0?(lwv/weeklyTarget*100):0;const mc=mpct>=100?'#27ae60':mpct>=80?'#f39c12':'#e74c3c';let sw=0,sumW=0;weeks.forEach(w=>{const v=getWVal(w);if(v>0){sw++;sumW+=v;}});const avg=sw>0?sumW/sw:0;document.getElementById('cardsContainer').innerHTML=`<div class="card"><div class="label">Faturamento Acumulado 2026</div><div class="value">${fmtBRL(totalAcum)}</div><div class="sub neutral">${months.length} meses</div></div><div class="card"><div class="label">Último Mês (${fmtMonth(lm)})</div><div class="value">${fmtBRL(lmv)}</div><div class="sub ${mvar>=0?'up':'down'}">${pm?pctStr(mvar)+' vs '+fmtMonth(pm):''}</div></div><div class="card"><div class="label">Última Semana (${fmtWeek(lw)})</div><div class="value">${fmtBRL(lwv)}</div><div class="sub ${wvar>=0?'up':'down'}">${pctStr(wvar)} vs ${fmtWeek(pw)}</div></div><div class="card"><div class="label">Média Semanal</div><div class="value">${fmtBRL(avg)}</div><div class="sub neutral">${sw} semanas com faturamento</div></div><div class="card meta-card"><div class="label">Meta Semanal</div><div class="value">${fmtBRL(weeklyTarget)}</div><div class="sub" style="color:${mc}">${fmtWeek(lw)}: ${mpct.toFixed(1)}% da meta</div><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(mpct,100)}%;background:${mc};"></div></div></div>`;}
-function renderEvolution(){const div=document.getElementById('evolutionChart');const isW=currentView==='weekly';const keys=isW?DATA.weeks:DATA.months;const labels=keys.map(k=>isW?fmtWeek(k):fmtMonth(k));const yv=keys.map(k=>isW?getWVal(k):getMVal(k));const vari=[0,...yv.slice(1).map((v,i)=>pct(v,yv[i]))];const vtxt=vari.map((v,i)=>i===0?'':pctStr(v));const bc=yv.map(v=>isW&&v>=weeklyTarget?'#27ae60':'#c0392b');const traces=[{x:labels,y:yv,type:'bar',name:'Faturamento',marker:{color:bc,opacity:0.85},text:yv.map(v=>fmtK(v)),textposition:'outside',textfont:{size:9,color:'#8899aa'},hovertemplate:'%{x}<br>R$ %{y:,.2f}<extra></extra>'},{x:labels,y:vari,type:'scatter',mode:'lines+markers+text',name:'Variação %',yaxis:'y2',line:{color:'#f39c12',width:2},marker:{size:5,color:'#f39c12'},text:vtxt,textposition:'top center',textfont:{size:9,color:'#f39c12'},hovertemplate:'%{x}: %{text}<extra></extra>'}];if(isW)traces.push({x:labels,y:labels.map(()=>weeklyTarget),type:'scatter',mode:'lines',name:'Meta',line:{color:'#fff',width:1,dash:'dot'},hoverinfo:'skip'});const layout={...layoutBase,yaxis:{...layoutBase.yaxis,title:'Faturamento (R$)'},yaxis2:{overlaying:'y',side:'right',showgrid:false,ticksuffix:'%',gridcolor:'transparent',linecolor:'transparent',tickfont:{size:9,color:'#f39c12'},zeroline:false},barmode:'group',showlegend:true};Plotly.react(div,traces,layout,{responsive:true,displayModeBar:false});}
-function renderPMO(){const div=document.getElementById('pmoChart');const isW=currentView==='weekly';const keys=isW?DATA.weeks:DATA.months;const labels=keys.map(k=>isW?fmtWeek(k):fmtMonth(k));const bp=isW?DATA.weekly.by_pmo:DATA.monthly.by_pmo;const pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];const traces=pmos.map(p=>({x:labels,y:keys.map(k=>(bp[k]||{})[p]||0),type:'bar',name:p,marker:{color:PMO_COLORS[p]||'#666'},hovertemplate:p+'<br>R$ %{y:,.2f}<extra></extra>'}));Plotly.react(div,traces,{...layoutBase,barmode:'stack',showlegend:true},{responsive:true,displayModeBar:false});}
-function renderWarehouse(){const div=document.getElementById('whChart');let totals={};DATA.warehouses.forEach(w=>{totals[w]=0;});DATA.months.forEach(m=>{const wd=DATA.monthly.by_warehouse[m]||{};DATA.warehouses.forEach(w=>{totals[w]+=(wd[w]||0);});});const items=Object.entries(totals).filter(([,v])=>v>0).sort((a,b)=>a[1]-b[1]);const trace={y:items.map(x=>x[0]),x:items.map(x=>x[1]),type:'bar',orientation:'h',marker:{color:items.map((_,i)=>WH_COLORS[i%WH_COLORS.length]),opacity:0.9},text:items.map(x=>fmtBRL(x[1])),textposition:'outside',textfont:{size:10,color:'#b0c4de'},hovertemplate:'%{y}<br>%{text}<extra></extra>',cliponaxis:false};const layout={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:190,r:120,t:30,b:30},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:9,color:'#5a7a9a'},showticklabels:false,zeroline:false},yaxis:{tickfont:{size:11,color:'#d0d8e0'},gridcolor:'transparent',linecolor:'transparent',automargin:true},showlegend:false,annotations:[{x:0.5,y:1.06,xref:'paper',yref:'paper',text:'Acumulado 2026',showarrow:false,font:{size:10,color:'#8899aa'}}]};Plotly.react(div,[trace],layout,{responsive:true,displayModeBar:false});}
-function renderTables(){const pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];let h='<table><tr><th>Mês</th>'+pmos.map(p=>'<th>'+p+'</th>').join('')+'<th>Total</th></tr>';DATA.months.forEach(m=>{h+='<tr><td>'+fmtMonth(m)+'</td>';let rt=0;pmos.forEach(p=>{const v=(DATA.monthly.by_pmo[m]||{})[p]||0;rt+=v;h+='<td>'+fmtBRL(v)+'</td>';});h+='<td style="font-weight:600;color:#fff">'+fmtBRL(rt)+'</td></tr>';});h+='<tr style="border-top:2px solid #2a3f5f;font-weight:600;color:#fff"><td>Total</td>';let gt=0;pmos.forEach(p=>{let s=0;DATA.months.forEach(m=>s+=(DATA.monthly.by_pmo[m]||{})[p]||0);gt+=s;h+='<td>'+fmtBRL(s)+'</td>';});h+='<td>'+fmtBRL(gt)+'</td></tr></table>';document.getElementById('monthlyTable').innerHTML=h;let h2='<table><tr><th>Mês</th>'+DATA.warehouses.map(w=>'<th style="font-size:9px">'+w+'</th>').join('')+'<th>Total</th></tr>';DATA.months.forEach(m=>{h2+='<tr><td>'+fmtMonth(m)+'</td>';let rt=0;DATA.warehouses.forEach(w=>{const v=(DATA.monthly.by_warehouse[m]||{})[w]||0;rt+=v;h2+='<td>'+(v>0?fmtK(v):'-')+'</td>';});h2+='<td style="font-weight:600;color:#fff">'+fmtBRL(rt)+'</td></tr>';});h2+='</table>';document.getElementById('whTable').innerHTML=h2;}
-function setFilter(f){currentFilter=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===f));renderAll();}
-function setView(v){currentView=v;document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===(v==='weekly'?'Semanal':'Mensal')));renderAll();}
-function updateMeta(){const raw=document.getElementById('metaInput').value.replace(/[^\d,.]/g,'').replace(/\./g,'').replace(',','.');weeklyTarget=parseFloat(raw)||375000;document.getElementById('metaInput').value=weeklyTarget.toLocaleString('pt-BR',{minimumFractionDigits:2});renderAll();}
-function renderAll(){renderCards();renderEvolution();renderPMO();renderWarehouse();renderTables();}
+
+/* ── Mapa de label → chave original (para clique nos gráficos) ── */
+var LABEL_TO_WEEK={};DATA.weeks.forEach(function(w){LABEL_TO_WEEK[fmtWeek(w)]=w;});
+var LABEL_TO_MONTH={};DATA.months.forEach(function(m){LABEL_TO_MONTH[fmtMonth(m)]=m;});
+
+/* ── Banner de filtro ativo ── */
+function updateFilterBanner(){
+  var banner=document.getElementById('activeFilterBanner');
+  var txt=document.getElementById('activeFilterText');
+  if(currentMonth!=='Todos'||currentWeek!=='Todos'){
+    banner.style.display='block';
+    if(currentWeek!=='Todos') txt.textContent='Filtrado: '+fmtWeek(currentWeek);
+    else txt.textContent='Filtrado: '+fmtMonth(currentMonth);
+  } else {
+    banner.style.display='none';
+  }
+}
+function clearPeriodFilter(){currentMonth='Todos';currentWeek='Todos';renderAll();}
+
+/* ── Cards KPI ── */
+function renderCards(){
+  var weeks=getFilteredWeeks(),months=getFilteredMonths();
+  var totalAcum=0;months.forEach(function(m){totalAcum+=getMVal(m);});
+  var lw=weeks.length>0?weeks[weeks.length-1]:DATA.weeks[DATA.weeks.length-1];
+  var pwIdx=weeks.length>1?weeks.length-2:-1;
+  if(pwIdx<0){var gi=DATA.weeks.indexOf(lw);pwIdx=gi>0?gi-1:-1;}
+  var pw=pwIdx>=0?(weeks.length>1?weeks[pwIdx]:DATA.weeks[pwIdx]):null;
+  var lwv=getWVal(lw),pwv=pw?getWVal(pw):0,wvar=pw?pct(lwv,pwv):0;
+  var lm=months.length>0?months[months.length-1]:DATA.months[DATA.months.length-1];
+  var pmIdx=months.length>1?months.length-2:-1;
+  if(pmIdx<0){var gi2=DATA.months.indexOf(lm);pmIdx=gi2>0?gi2-1:-1;}
+  var pm=pmIdx>=0?(months.length>1?months[pmIdx]:DATA.months[pmIdx]):null;
+  var lmv=getMVal(lm),mvar=pm?pct(lmv,getMVal(pm)):0;
+  var mpct=weeklyTarget>0?(lwv/weeklyTarget*100):0;
+  var mc=mpct>=100?'#27ae60':mpct>=80?'#f39c12':'#e74c3c';
+  var sw=0,sumW=0;weeks.forEach(function(w){var v=getWVal(w);if(v>0){sw++;sumW+=v;}});
+  var avg=sw>0?sumW/sw:0;
+  var periodLabel=currentMonth!=='Todos'?fmtMonth(currentMonth):(currentWeek!=='Todos'?fmtWeek(currentWeek):'Acumulado 2026');
+  document.getElementById('cardsContainer').innerHTML=
+    '<div class="card"><div class="label">Faturamento '+periodLabel+'</div><div class="value">'+fmtBRL(totalAcum)+'</div><div class="sub neutral">'+months.length+' '+(months.length===1?'m\u00eas':'meses')+'</div></div>'+
+    '<div class="card"><div class="label">'+(months.length===1?'M\u00eas: ':'Ult. M\u00eas: ')+fmtMonth(lm)+'</div><div class="value">'+fmtBRL(lmv)+'</div><div class="sub '+(mvar>=0?'up':'down')+'">'+(pm?pctStr(mvar)+' vs '+fmtMonth(pm):'')+'</div></div>'+
+    '<div class="card"><div class="label">'+(weeks.length===1?'Semana: ':'Ult. Semana: ')+fmtWeek(lw)+'</div><div class="value">'+fmtBRL(lwv)+'</div><div class="sub '+(wvar>=0?'up':'down')+'">'+(pw?pctStr(wvar)+' vs '+fmtWeek(pw):'')+'</div></div>'+
+    '<div class="card"><div class="label">M\u00e9dia Semanal</div><div class="value">'+fmtBRL(avg)+'</div><div class="sub neutral">'+sw+' semanas com faturamento</div></div>'+
+    '<div class="card meta-card"><div class="label">Meta Semanal</div><div class="value">'+fmtBRL(weeklyTarget)+'</div><div class="sub" style="color:'+mc+'">'+fmtWeek(lw)+': '+mpct.toFixed(1)+'% da meta</div><div class="bar-bg"><div class="bar-fill" style="width:'+Math.min(mpct,100)+'%;background:'+mc+';"></div></div></div>';
+}
+
+/* ── Gráfico Evolução (sempre mostra TUDO, destaca seleção) ── */
+function renderEvolution(){
+  var div=document.getElementById('evolutionChart');
+  var isW=currentView==='weekly';
+  var keys=isW?DATA.weeks:DATA.months;
+  var labels=keys.map(function(k){return isW?fmtWeek(k):fmtMonth(k);});
+  var yv=keys.map(function(k){return isW?getWVal(k):getMVal(k);});
+  var vari=[0];for(var i=1;i<yv.length;i++)vari.push(pct(yv[i],yv[i-1]));
+  var vtxt=vari.map(function(v,i){return i===0?'':pctStr(v);});
+
+  /* Cores: destacar barra selecionada, escurecer outras se filtro ativo */
+  var selectedLabel=null;
+  if(isW&&currentWeek!=='Todos') selectedLabel=fmtWeek(currentWeek);
+  if(!isW&&currentMonth!=='Todos') selectedLabel=fmtMonth(currentMonth);
+
+  var bc=yv.map(function(v,i){
+    var baseColor=isW&&v>=weeklyTarget?'#27ae60':'#c0392b';
+    if(selectedLabel&&labels[i]!==selectedLabel) return '#1a2a44';
+    return baseColor;
+  });
+  var opac=yv.map(function(v,i){
+    if(selectedLabel&&labels[i]!==selectedLabel) return 0.35;
+    return 0.9;
+  });
+
+  var traces=[
+    {x:labels,y:yv,type:'bar',name:'Faturamento',marker:{color:bc,opacity:opac},text:yv.map(function(v){return fmtK(v);}),textposition:'outside',textfont:{size:9,color:'#8899aa'},hovertemplate:'%{x}<br>R$ %{y:,.2f}<extra></extra>'},
+    {x:labels,y:vari,type:'scatter',mode:'lines+markers+text',name:'Varia\u00e7\u00e3o %',yaxis:'y2',line:{color:'#f39c12',width:2},marker:{size:5,color:'#f39c12'},text:vtxt,textposition:'top center',textfont:{size:9,color:'#f39c12'},hovertemplate:'%{x}: %{text}<extra></extra>'}
+  ];
+  if(isW)traces.push({x:labels,y:labels.map(function(){return weeklyTarget;}),type:'scatter',mode:'lines',name:'Meta',line:{color:'#fff',width:1,dash:'dot'},hoverinfo:'skip'});
+  var layout=Object.assign({},layoutBase,{yaxis:Object.assign({},layoutBase.yaxis,{title:'Faturamento (R$)'}),yaxis2:{overlaying:'y',side:'right',showgrid:false,ticksuffix:'%',gridcolor:'transparent',linecolor:'transparent',tickfont:{size:9,color:'#f39c12'},zeroline:false},barmode:'group',showlegend:true});
+  Plotly.react(div,traces,layout,{responsive:true,displayModeBar:false});
+
+  /* ── Evento de clique nas barras ── */
+  div.removeAllListeners && div.removeAllListeners('plotly_click');
+  div.on('plotly_click',function(data){
+    if(!data||!data.points||!data.points[0])return;
+    var pt=data.points[0];
+    if(pt.curveNumber!==0)return; /* só clica em barras, não na linha */
+    var clickedLabel=pt.x;
+    if(isW){
+      var wKey=LABEL_TO_WEEK[clickedLabel];
+      if(wKey){
+        if(currentWeek===wKey){currentWeek='Todos';currentMonth='Todos';}
+        else{currentWeek=wKey;currentMonth=WEEK_MONTH[wKey]||'Todos';}
+      }
+    }else{
+      var mKey=LABEL_TO_MONTH[clickedLabel];
+      if(mKey){
+        if(currentMonth===mKey&&currentWeek==='Todos'){currentMonth='Todos';}
+        else{currentMonth=mKey;currentWeek='Todos';}
+      }
+    }
+    renderAll();
+  });
+}
+
+/* ── Gráfico PMO ── */
+function renderPMO(){
+  var div=document.getElementById('pmoChart');
+  var isW=currentView==='weekly';
+  var keys=isW?getFilteredWeeks():getFilteredMonths();
+  var labels=keys.map(function(k){return isW?fmtWeek(k):fmtMonth(k);});
+  var bp=isW?DATA.weekly.by_pmo:DATA.monthly.by_pmo;
+  var pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];
+  var traces=pmos.map(function(p){return{x:labels,y:keys.map(function(k){return(bp[k]||{})[p]||0;}),type:'bar',name:p,marker:{color:PMO_COLORS[p]||'#666'},hovertemplate:p+'<br>R$ %{y:,.2f}<extra></extra>'};});
+  Plotly.react(div,traces,Object.assign({},layoutBase,{barmode:'stack',showlegend:true}),{responsive:true,displayModeBar:false});
+}
+
+/* ── Gráfico Warehouse ── */
+function renderWarehouse(){
+  var div=document.getElementById('whChart');
+  var months=getFilteredMonths();
+  var totals={};DATA.warehouses.forEach(function(w){totals[w]=0;});
+  months.forEach(function(m){var wd=DATA.monthly.by_warehouse[m]||{};DATA.warehouses.forEach(function(w){totals[w]+=(wd[w]||0);});});
+  var items=Object.entries(totals).filter(function(x){return x[1]>0;}).sort(function(a,b){return a[1]-b[1];});
+  var periodLabel=currentMonth!=='Todos'?fmtMonth(currentMonth):(currentWeek!=='Todos'?fmtWeek(currentWeek):'Acumulado 2026');
+  var trace={y:items.map(function(x){return x[0];}),x:items.map(function(x){return x[1];}),type:'bar',orientation:'h',marker:{color:items.map(function(_,i){return WH_COLORS[i%WH_COLORS.length];}),opacity:0.9},text:items.map(function(x){return fmtBRL(x[1]);}),textposition:'outside',textfont:{size:10,color:'#b0c4de'},hovertemplate:'%{y}<br>%{text}<extra></extra>',cliponaxis:false};
+  var layout={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:190,r:120,t:30,b:30},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:9,color:'#5a7a9a'},showticklabels:false,zeroline:false},yaxis:{tickfont:{size:11,color:'#d0d8e0'},gridcolor:'transparent',linecolor:'transparent',automargin:true},showlegend:false,annotations:[{x:0.5,y:1.06,xref:'paper',yref:'paper',text:periodLabel,showarrow:false,font:{size:10,color:'#8899aa'}}]};
+  Plotly.react(div,[trace],layout,{responsive:true,displayModeBar:false});
+}
+
+/* ── Tabelas ── */
+function renderTables(){
+  var months=getFilteredMonths();
+  var pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];
+  var h='<table><tr><th>M\u00eas</th>'+pmos.map(function(p){return'<th>'+p+'</th>';}).join('')+'<th>Total</th></tr>';
+  months.forEach(function(m){
+    h+='<tr><td>'+fmtMonth(m)+'</td>';var rt=0;
+    pmos.forEach(function(p){var v=(DATA.monthly.by_pmo[m]||{})[p]||0;rt+=v;h+='<td>'+fmtBRL(v)+'</td>';});
+    h+='<td style="font-weight:600;color:#fff">'+fmtBRL(rt)+'</td></tr>';
+  });
+  if(months.length>1){
+    h+='<tr style="border-top:2px solid #2a3f5f;font-weight:600;color:#fff"><td>Total</td>';var gt=0;
+    pmos.forEach(function(p){var s=0;months.forEach(function(m){s+=(DATA.monthly.by_pmo[m]||{})[p]||0;});gt+=s;h+='<td>'+fmtBRL(s)+'</td>';});
+    h+='<td>'+fmtBRL(gt)+'</td></tr>';
+  }
+  h+='</table>';document.getElementById('monthlyTable').innerHTML=h;
+
+  var h2='<table><tr><th>M\u00eas</th>'+DATA.warehouses.map(function(w){return'<th style="font-size:9px">'+w+'</th>';}).join('')+'<th>Total</th></tr>';
+  months.forEach(function(m){
+    h2+='<tr><td>'+fmtMonth(m)+'</td>';var rt=0;
+    DATA.warehouses.forEach(function(w){var v=(DATA.monthly.by_warehouse[m]||{})[w]||0;rt+=v;h2+='<td>'+(v>0?fmtK(v):'-')+'</td>';});
+    h2+='<td style="font-weight:600;color:#fff">'+fmtBRL(rt)+'</td></tr>';
+  });
+  h2+='</table>';document.getElementById('whTable').innerHTML=h2;
+}
+
+/* ── Filtros e controles ── */
+function setFilter(f){currentFilter=f;document.querySelectorAll('#pmoFilters .fbtn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()===f);});renderAll();}
+function setView(v){currentView=v;document.querySelectorAll('.toggle-btn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()===(v==='weekly'?'Semanal':'Mensal'));});renderAll();}
+function updateMeta(){var raw=document.getElementById('metaInput').value.replace(/[^\d,.]/g,'').replace(/\./g,'').replace(',','.');weeklyTarget=parseFloat(raw)||375000;document.getElementById('metaInput').value=weeklyTarget.toLocaleString('pt-BR',{minimumFractionDigits:2});renderAll();}
+function renderAll(){updateFilterBanner();renderCards();renderEvolution();renderPMO();renderWarehouse();renderTables();}
 
 // ── AUTENTICAÇÃO FIREBASE + FALLBACK SHA-256 ─────────────────────────────────
 const FIREBASE_CONFIG = {"apiKey": "AIzaSyA_W5iGB8uCA0CFz_CCcLxW1exHuOo2tD8", "authDomain": "bi-financeiro-amerinode.firebaseapp.com", "projectId": "bi-financeiro-amerinode", "storageBucket": "bi-financeiro-amerinode.firebasestorage.app", "messagingSenderId": "839375057640", "appId": "1:839375057640:web:b980e6ed00ba3a88944f5d"};
@@ -230,7 +405,6 @@ const FALLBACK_HASH = '9a26bb2cee40647c11708d8a4052d558a545e2e5c91864b86e1e5f63f
 let firebaseReady = false;
 let db = null;
 
-// Inicializar Firebase (se configurado)
 try {
   if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== 'SUA_API_KEY_AQUI') {
     firebase.initializeApp(FIREBASE_CONFIG);
@@ -238,7 +412,7 @@ try {
     firebaseReady = true;
     console.log('Firebase inicializado.');
   } else {
-    console.log('Firebase não configurado — usando modo offline.');
+    console.log('Firebase n\u00e3o configurado \u2014 usando modo offline.');
   }
 } catch(e) {
   console.warn('Erro ao inicializar Firebase:', e);
@@ -252,47 +426,34 @@ function showDash() {
 }
 
 function showError(elemId, msg) {
-  const el = document.getElementById(elemId);
+  var el = document.getElementById(elemId);
   el.textContent = msg;
-  setTimeout(() => el.textContent = '', 4000);
+  setTimeout(function(){ el.textContent = ''; }, 4000);
 }
 
-// ── Função auxiliar: verificar hash offline ──
 async function checkOfflineHash(senha) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(senha));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(senha));
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
 }
 
-// ── Login principal ──
 async function fazerLogin() {
-  const email = (document.getElementById('emailInput').value || '').trim();
-  const senha = document.getElementById('senhaInput').value;
-
+  var email = (document.getElementById('emailInput').value || '').trim();
+  var senha = document.getElementById('senhaInput').value;
   if (!senha) { showError('loginErro', 'Informe a senha.'); return; }
 
-  // Se não informou e-mail, tenta modo offline direto
   if (!email) {
-    const hash = await checkOfflineHash(senha);
-    if (hash === FALLBACK_HASH) {
-      sessionStorage.setItem('bi_auth', 'ok');
-      showDash();
-    } else {
-      showError('loginErro', 'Informe seu e-mail e senha.');
-      document.getElementById('senhaInput').value = '';
-    }
+    var hash = await checkOfflineHash(senha);
+    if (hash === FALLBACK_HASH) { sessionStorage.setItem('bi_auth', 'ok'); showDash(); }
+    else { showError('loginErro', 'Informe seu e-mail e senha.'); document.getElementById('senhaInput').value = ''; }
     return;
   }
 
-  // Se Firebase disponível, tenta autenticação online
   if (firebaseReady) {
     try {
-      const cred = await firebase.auth().signInWithEmailAndPassword(email, senha);
-      const uid = cred.user.uid;
-
-      // Verificar se precisa trocar senha (primeiro acesso)
-      const doc = await db.collection('users').doc(uid).get();
+      var cred = await firebase.auth().signInWithEmailAndPassword(email, senha);
+      var uid = cred.user.uid;
+      var doc = await db.collection('users').doc(uid).get();
       if (!doc.exists || doc.data().mustChangePassword === true) {
-        // Primeiro acesso — forçar troca de senha
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('changePassOverlay').style.display = 'flex';
       } else {
@@ -302,86 +463,58 @@ async function fazerLogin() {
       return;
     } catch(e) {
       console.warn('Firebase auth falhou:', e.code, e.message);
-      // Se erro de rede/domínio (file://), tenta fallback offline
       if (e.code === 'auth/network-request-failed' || e.code === 'auth/unauthorized-domain' || e.code === 'auth/internal-error') {
-        console.log('Tentando fallback offline...');
-        const hash = await checkOfflineHash(senha);
-        if (hash === FALLBACK_HASH) {
-          sessionStorage.setItem('bi_auth', 'ok');
-          showDash();
-          return;
-        }
+        var hash2 = await checkOfflineHash(senha);
+        if (hash2 === FALLBACK_HASH) { sessionStorage.setItem('bi_auth', 'ok'); showDash(); return; }
       }
-      let msg = 'Erro ao fazer login.';
-      if (e.code === 'auth/user-not-found') msg = 'E-mail não cadastrado.';
+      var msg = 'Erro ao fazer login.';
+      if (e.code === 'auth/user-not-found') msg = 'E-mail n\u00e3o cadastrado.';
       else if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = 'Senha incorreta.';
-      else if (e.code === 'auth/invalid-email') msg = 'E-mail inválido.';
+      else if (e.code === 'auth/invalid-email') msg = 'E-mail inv\u00e1lido.';
       else if (e.code === 'auth/too-many-requests') msg = 'Muitas tentativas. Aguarde alguns minutos.';
-      else if (e.code === 'auth/network-request-failed') msg = 'Sem conexão. Verifique sua internet.';
-      else if (e.code === 'auth/unauthorized-domain') msg = 'Domínio não autorizado. Abra pelo GitHub Pages ou use apenas a senha sem e-mail.';
+      else if (e.code === 'auth/network-request-failed') msg = 'Sem conex\u00e3o. Verifique sua internet.';
+      else if (e.code === 'auth/unauthorized-domain') msg = 'Dom\u00ednio n\u00e3o autorizado. Abra pelo GitHub Pages ou use apenas a senha sem e-mail.';
       showError('loginErro', msg);
       document.getElementById('senhaInput').value = '';
       return;
     }
   }
 
-  // Fallback offline quando Firebase não está pronto
-  const hash = await checkOfflineHash(senha);
-  if (hash === FALLBACK_HASH) {
-    sessionStorage.setItem('bi_auth', 'ok');
-    showDash();
-  } else {
-    showError('loginErro', 'Senha incorreta.');
-    document.getElementById('senhaInput').value = '';
-  }
+  var hash3 = await checkOfflineHash(senha);
+  if (hash3 === FALLBACK_HASH) { sessionStorage.setItem('bi_auth', 'ok'); showDash(); }
+  else { showError('loginErro', 'Senha incorreta.'); document.getElementById('senhaInput').value = ''; }
 }
 
-// ── Troca de senha obrigatória ──
 async function trocarSenha() {
-  const pass1 = document.getElementById('newPass1').value;
-  const pass2 = document.getElementById('newPass2').value;
-
+  var pass1 = document.getElementById('newPass1').value;
+  var pass2 = document.getElementById('newPass2').value;
   if (!pass1 || !pass2) { showError('changePassErro', 'Preencha ambos os campos.'); return; }
-  if (pass1 !== pass2) { showError('changePassErro', 'As senhas não conferem.'); return; }
-  if (pass1.length < 8) { showError('changePassErro', 'Mínimo 8 caracteres.'); return; }
-  if (!/[A-Z]/.test(pass1)) { showError('changePassErro', 'Inclua pelo menos 1 letra maiúscula.'); return; }
-  if (!/[0-9]/.test(pass1)) { showError('changePassErro', 'Inclua pelo menos 1 número.'); return; }
-
+  if (pass1 !== pass2) { showError('changePassErro', 'As senhas n\u00e3o conferem.'); return; }
+  if (pass1.length < 8) { showError('changePassErro', 'M\u00ednimo 8 caracteres.'); return; }
+  if (!/[A-Z]/.test(pass1)) { showError('changePassErro', 'Inclua pelo menos 1 letra mai\u00fascula.'); return; }
+  if (!/[0-9]/.test(pass1)) { showError('changePassErro', 'Inclua pelo menos 1 n\u00famero.'); return; }
   try {
-    const user = firebase.auth().currentUser;
+    var user = firebase.auth().currentUser;
     await user.updatePassword(pass1);
-
-    // Marcar que a senha foi alterada
     await db.collection('users').doc(user.uid).set({
-      email: user.email,
-      mustChangePassword: false,
-      passwordChangedAt: new Date().toISOString(),
+      email: user.email, mustChangePassword: false, passwordChangedAt: new Date().toISOString()
     }, { merge: true });
-
     document.getElementById('changePassOk').textContent = 'Senha criada com sucesso! Entrando...';
-    setTimeout(() => {
-      sessionStorage.setItem('bi_auth', 'firebase');
-      showDash();
-    }, 1500);
+    setTimeout(function(){ sessionStorage.setItem('bi_auth', 'firebase'); showDash(); }, 1500);
   } catch(e) {
-    let msg = 'Erro ao alterar senha.';
-    if (e.code === 'auth/weak-password') msg = 'Senha muito fraca. Tente outra.';
-    else if (e.code === 'auth/requires-recent-login') msg = 'Sessão expirada. Faça login novamente.';
-    showError('changePassErro', msg);
+    var msg2 = 'Erro ao alterar senha.';
+    if (e.code === 'auth/weak-password') msg2 = 'Senha muito fraca. Tente outra.';
+    else if (e.code === 'auth/requires-recent-login') msg2 = 'Sess\u00e3o expirada. Fa\u00e7a login novamente.';
+    showError('changePassErro', msg2);
   }
 }
 
-// ── Verificar sessão salva ──
-(function() {
-  const salvo = sessionStorage.getItem('bi_auth');
+(function(){
+  var salvo = sessionStorage.getItem('bi_auth');
   if (salvo) {
     if (firebaseReady) {
-      firebase.auth().onAuthStateChanged(function(user) {
-        if (user) { showDash(); }
-      });
-    } else {
-      showDash();
-    }
+      firebase.auth().onAuthStateChanged(function(user){ if (user) { showDash(); } });
+    } else { showDash(); }
   }
 })();
 </script>
