@@ -285,6 +285,30 @@ function renderCards(){
     '<div class="card meta-card"><div class="label">Meta Semanal</div><div class="value">'+fmtBRL(weeklyTarget)+'</div><div class="sub" style="color:'+mc+'">'+fmtWeek(lw)+': '+mpct.toFixed(1)+'% da meta</div><div class="bar-bg"><div class="bar-fill" style="width:'+Math.min(mpct,100)+'%;background:'+mc+';"></div></div></div>';
 }
 
+/* ── Handler global de clique no gráfico (vinculado 1x, lê estado atual) ── */
+var _evoClickBound=false;
+function handleEvolutionClick(data){
+  if(!data||!data.points||!data.points[0])return;
+  var pt=data.points[0];
+  if(pt.curveNumber!==0)return; /* só barras, não linha */
+  var clickedLabel=pt.x;
+  var isW=currentView==='weekly';
+  if(isW){
+    var wKey=LABEL_TO_WEEK[clickedLabel];
+    if(wKey){
+      if(currentWeek===wKey){currentWeek='Todos';currentMonth='Todos';}
+      else{currentWeek=wKey;currentMonth=WEEK_MONTH[wKey]||'Todos';}
+    }
+  }else{
+    var mKey=LABEL_TO_MONTH[clickedLabel];
+    if(mKey){
+      if(currentMonth===mKey&&currentWeek==='Todos'){currentMonth='Todos';}
+      else{currentMonth=mKey;currentWeek='Todos';}
+    }
+  }
+  renderAll();
+}
+
 /* ── Gráfico Evolução (sempre mostra TUDO, destaca seleção) ── */
 function renderEvolution(){
   var div=document.getElementById('evolutionChart');
@@ -316,33 +340,17 @@ function renderEvolution(){
   ];
   if(isW)traces.push({x:labels,y:labels.map(function(){return weeklyTarget;}),type:'scatter',mode:'lines',name:'Meta',line:{color:'#fff',width:1,dash:'dot'},hoverinfo:'skip'});
   var layout=Object.assign({},layoutBase,{yaxis:Object.assign({},layoutBase.yaxis,{title:'Faturamento (R$)'}),yaxis2:{overlaying:'y',side:'right',showgrid:false,ticksuffix:'%',gridcolor:'transparent',linecolor:'transparent',tickfont:{size:9,color:'#f39c12'},zeroline:false},barmode:'group',showlegend:true});
-  Plotly.react(div,traces,layout,{responsive:true,displayModeBar:false});
+  Plotly.newPlot(div,traces,layout,{responsive:true,displayModeBar:false});
 
-  /* ── Evento de clique nas barras ── */
-  div.removeAllListeners && div.removeAllListeners('plotly_click');
-  div.on('plotly_click',function(data){
-    if(!data||!data.points||!data.points[0])return;
-    var pt=data.points[0];
-    if(pt.curveNumber!==0)return; /* só clica em barras, não na linha */
-    var clickedLabel=pt.x;
-    if(isW){
-      var wKey=LABEL_TO_WEEK[clickedLabel];
-      if(wKey){
-        if(currentWeek===wKey){currentWeek='Todos';currentMonth='Todos';}
-        else{currentWeek=wKey;currentMonth=WEEK_MONTH[wKey]||'Todos';}
-      }
-    }else{
-      var mKey=LABEL_TO_MONTH[clickedLabel];
-      if(mKey){
-        if(currentMonth===mKey&&currentWeek==='Todos'){currentMonth='Todos';}
-        else{currentMonth=mKey;currentWeek='Todos';}
-      }
-    }
-    renderAll();
-  });
+  /* Vincular clique uma única vez */
+  if(!_evoClickBound){
+    div.on('plotly_click',handleEvolutionClick);
+    _evoClickBound=true;
+  }
 }
 
 /* ── Gráfico PMO ── */
+var _pmoClickBound=false;
 function renderPMO(){
   var div=document.getElementById('pmoChart');
   var isW=currentView==='weekly';
@@ -351,7 +359,20 @@ function renderPMO(){
   var bp=isW?DATA.weekly.by_pmo:DATA.monthly.by_pmo;
   var pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];
   var traces=pmos.map(function(p){return{x:labels,y:keys.map(function(k){return(bp[k]||{})[p]||0;}),type:'bar',name:p,marker:{color:PMO_COLORS[p]||'#666'},hovertemplate:p+'<br>R$ %{y:,.2f}<extra></extra>'};});
-  Plotly.react(div,traces,Object.assign({},layoutBase,{barmode:'stack',showlegend:true}),{responsive:true,displayModeBar:false});
+  Plotly.newPlot(div,traces,Object.assign({},layoutBase,{barmode:'stack',showlegend:true}),{responsive:true,displayModeBar:false});
+  if(!_pmoClickBound){
+    div.on('plotly_click',function(data){
+      if(!data||!data.points||!data.points[0])return;
+      var pmoName=data.points[0].data.name;
+      if(pmoName&&DATA.pmos.indexOf(pmoName)>=0){
+        if(currentFilter===pmoName) currentFilter='Todos';
+        else currentFilter=pmoName;
+        document.querySelectorAll('#pmoFilters .fbtn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()===currentFilter);});
+        renderAll();
+      }
+    });
+    _pmoClickBound=true;
+  }
 }
 
 /* ── Gráfico Warehouse ── */
@@ -364,7 +385,7 @@ function renderWarehouse(){
   var periodLabel=currentMonth!=='Todos'?fmtMonth(currentMonth):(currentWeek!=='Todos'?fmtWeek(currentWeek):'Acumulado 2026');
   var trace={y:items.map(function(x){return x[0];}),x:items.map(function(x){return x[1];}),type:'bar',orientation:'h',marker:{color:items.map(function(_,i){return WH_COLORS[i%WH_COLORS.length];}),opacity:0.9},text:items.map(function(x){return fmtBRL(x[1]);}),textposition:'outside',textfont:{size:10,color:'#b0c4de'},hovertemplate:'%{y}<br>%{text}<extra></extra>',cliponaxis:false};
   var layout={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:190,r:120,t:30,b:30},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:9,color:'#5a7a9a'},showticklabels:false,zeroline:false},yaxis:{tickfont:{size:11,color:'#d0d8e0'},gridcolor:'transparent',linecolor:'transparent',automargin:true},showlegend:false,annotations:[{x:0.5,y:1.06,xref:'paper',yref:'paper',text:periodLabel,showarrow:false,font:{size:10,color:'#8899aa'}}]};
-  Plotly.react(div,[trace],layout,{responsive:true,displayModeBar:false});
+  Plotly.newPlot(div,[trace],layout,{responsive:true,displayModeBar:false});
 }
 
 /* ── Tabelas ── */
