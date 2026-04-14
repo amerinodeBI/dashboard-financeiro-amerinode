@@ -285,12 +285,11 @@ function renderCards(){
     '<div class="card meta-card"><div class="label">Meta Semanal</div><div class="value">'+fmtBRL(weeklyTarget)+'</div><div class="sub" style="color:'+mc+'">'+fmtWeek(lw)+': '+mpct.toFixed(1)+'% da meta</div><div class="bar-bg"><div class="bar-fill" style="width:'+Math.min(mpct,100)+'%;background:'+mc+';"></div></div></div>';
 }
 
-/* ── Handler global de clique no gráfico (vinculado 1x, lê estado atual) ── */
-var _evoClickBound=false;
+/* ── Handler de clique no gráfico Evolução ── */
 function handleEvolutionClick(data){
   if(!data||!data.points||!data.points[0])return;
   var pt=data.points[0];
-  if(pt.curveNumber!==0)return; /* só barras, não linha */
+  if(pt.curveNumber!==0)return;
   var clickedLabel=pt.x;
   var isW=currentView==='weekly';
   if(isW){
@@ -319,19 +318,17 @@ function renderEvolution(){
   var vari=[0];for(var i=1;i<yv.length;i++)vari.push(pct(yv[i],yv[i-1]));
   var vtxt=vari.map(function(v,i){return i===0?'':pctStr(v);});
 
-  /* Cores: destacar barra selecionada, escurecer outras se filtro ativo */
   var selectedLabel=null;
   if(isW&&currentWeek!=='Todos') selectedLabel=fmtWeek(currentWeek);
   if(!isW&&currentMonth!=='Todos') selectedLabel=fmtMonth(currentMonth);
 
   var bc=yv.map(function(v,i){
-    var baseColor=isW&&v>=weeklyTarget?'#27ae60':'#c0392b';
-    if(selectedLabel&&labels[i]!==selectedLabel) return '#1a2a44';
-    return baseColor;
+    if(selectedLabel&&labels[i]!==selectedLabel) return '#0a1628';
+    return '#003366';
   });
   var opac=yv.map(function(v,i){
-    if(selectedLabel&&labels[i]!==selectedLabel) return 0.35;
-    return 0.9;
+    if(selectedLabel&&labels[i]!==selectedLabel) return 0.3;
+    return 0.92;
   });
 
   var traces=[
@@ -341,16 +338,10 @@ function renderEvolution(){
   if(isW)traces.push({x:labels,y:labels.map(function(){return weeklyTarget;}),type:'scatter',mode:'lines',name:'Meta',line:{color:'#fff',width:1,dash:'dot'},hoverinfo:'skip'});
   var layout=Object.assign({},layoutBase,{yaxis:Object.assign({},layoutBase.yaxis,{title:'Faturamento (R$)'}),yaxis2:{overlaying:'y',side:'right',showgrid:false,ticksuffix:'%',gridcolor:'transparent',linecolor:'transparent',tickfont:{size:9,color:'#f39c12'},zeroline:false},barmode:'group',showlegend:true});
   Plotly.newPlot(div,traces,layout,{responsive:true,displayModeBar:false});
-
-  /* Vincular clique uma única vez */
-  if(!_evoClickBound){
-    div.on('plotly_click',handleEvolutionClick);
-    _evoClickBound=true;
-  }
+  div.on('plotly_click',handleEvolutionClick);
 }
 
 /* ── Gráfico PMO ── */
-var _pmoClickBound=false;
 function renderPMO(){
   var div=document.getElementById('pmoChart');
   var isW=currentView==='weekly';
@@ -360,19 +351,16 @@ function renderPMO(){
   var pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];
   var traces=pmos.map(function(p){return{x:labels,y:keys.map(function(k){return(bp[k]||{})[p]||0;}),type:'bar',name:p,marker:{color:PMO_COLORS[p]||'#666'},hovertemplate:p+'<br>R$ %{y:,.2f}<extra></extra>'};});
   Plotly.newPlot(div,traces,Object.assign({},layoutBase,{barmode:'stack',showlegend:true}),{responsive:true,displayModeBar:false});
-  if(!_pmoClickBound){
-    div.on('plotly_click',function(data){
-      if(!data||!data.points||!data.points[0])return;
-      var pmoName=data.points[0].data.name;
-      if(pmoName&&DATA.pmos.indexOf(pmoName)>=0){
-        if(currentFilter===pmoName) currentFilter='Todos';
-        else currentFilter=pmoName;
-        document.querySelectorAll('#pmoFilters .fbtn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()===currentFilter);});
-        renderAll();
-      }
-    });
-    _pmoClickBound=true;
-  }
+  div.on('plotly_click',function(data){
+    if(!data||!data.points||!data.points[0])return;
+    var pmoName=data.points[0].data.name;
+    if(pmoName&&DATA.pmos.indexOf(pmoName)>=0){
+      if(currentFilter===pmoName) currentFilter='Todos';
+      else currentFilter=pmoName;
+      document.querySelectorAll('#pmoFilters .fbtn').forEach(function(b){b.classList.toggle('active',b.textContent.trim()===currentFilter);});
+      renderAll();
+    }
+  });
 }
 
 /* ── Gráfico Warehouse ── */
