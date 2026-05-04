@@ -43,6 +43,14 @@ body { font-family:'Segoe UI',Tahoma,sans-serif; background:#0a1628; color:#e0e0
 .meta-box label { font-size:11px; color:#8899aa; text-transform:uppercase; letter-spacing:0.5px; }
 .meta-box input { width:130px; background:transparent; border:none; border-bottom:1px solid #c0392b; color:#fff; font-size:14px; font-weight:600; text-align:right; outline:none; padding:2px 0; }
 .update-info { font-size:11px; color:#5a7a9a; }
+.period-filter { padding:12px 28px; display:flex; gap:10px; align-items:center; border-bottom:1px solid #1a2a44; }
+.period-filter label { font-size:11px; color:#8899aa; text-transform:uppercase; letter-spacing:0.5px; }
+.period-inputs { display:flex; gap:8px; align-items:center; }
+.period-label { font-size:11px; color:#5a7a9a; }
+.period-filter input[type="date"] { background:rgba(255,255,255,0.06); border:1px solid #2a3f5f; border-radius:6px; color:#fff; font-size:12px; padding:6px 10px; outline:none; cursor:pointer; transition:border .2s; }
+.period-filter input[type="date"]:focus { border-color:#c0392b; }
+.period-filter input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(0.7); cursor:pointer; }
+.period-clear { background:#c0392b !important; border-color:#c0392b !important; color:#fff !important; font-weight:600; }
 .filters { padding:12px 28px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 .filters label { font-size:11px; color:#8899aa; margin-right:6px; text-transform:uppercase; letter-spacing:0.5px; }
 .fbtn { padding:6px 16px; border-radius:20px; border:1px solid #2a3f5f; background:transparent; color:#b0c4de; font-size:12px; font-weight:500; cursor:pointer; transition:all .2s; }
@@ -62,8 +70,9 @@ body { font-family:'Segoe UI',Tahoma,sans-serif; background:#0a1628; color:#e0e0
 .card.meta-card .bar-fill { height:6px; border-radius:3px; transition:width .5s; }
 .chart-section { padding:8px 28px 16px; }
 .chart-box { background:#0f2240; border-radius:10px; padding:16px; margin-bottom:16px; }
+#evolutionChart { cursor:default; }
+#evolutionChart .nsewdrag { cursor:pointer !important; }
 #evolutionChart .plot-container .trace.bars .point { cursor:pointer !important; }
-#evolutionChart { cursor:pointer; }
 .chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
 .chart-title { font-size:14px; font-weight:600; color:#fff; }
 .toggle-group { display:flex; gap:0; }
@@ -149,7 +158,18 @@ tr:hover td { background:rgba(192,57,43,0.06); }
       <label>Meta Semanal</label>
       <input type="text" id="metaInput" value="375.000,00" onchange="updateMeta()">
     </div>
-    <div class="update-info">Atualizado: 30/04/2026 07:09</div>
+    <div class="update-info">Atualizado: 04/05/2026 09:03</div>
+  </div>
+</div>
+
+<div class="period-filter" id="periodFilter">
+  <label>Período:</label>
+  <div class="period-inputs">
+    <span class="period-label">De</span>
+    <input type="date" id="dateFrom" onchange="applyDateFilter()">
+    <span class="period-label">Até</span>
+    <input type="date" id="dateTo" onchange="applyDateFilter()">
+    <button class="fbtn period-clear" id="periodClearBtn" onclick="clearDateFilter()" style="display:none;">Limpar &times;</button>
   </div>
 </div>
 
@@ -208,9 +228,11 @@ tr:hover td { background:rgba(192,57,43,0.06); }
 </div><!-- /dashContent -->
 
 <script>
-const DATA = {"weekly_target": 375000, "pmos": ["MAVENIR", "MILETO", "TGESTIONA", "TIM", "VITAL", "VIVO N3", "VIVO REPARO", "VIVO SPM"], "warehouses": ["Backoffice TIM", "JDI Remanufatura", "Jaguare", "Jundiaí", "Mavenir", "Reparo Terceiros", "Rio de Janeiro (Remanufatura)", "SPM BBN", "SPM Regional SP", "Sta Rita", "Tgestiona"], "weeks": ["2026-W01", "2026-W02", "2026-W03", "2026-W04", "2026-W05", "2026-W06", "2026-W07", "2026-W08", "2026-W09", "2026-W10", "2026-W11", "2026-W12", "2026-W13", "2026-W14", "2026-W15", "2026-W16", "2026-W17", "2026-W18"], "months": ["2026-01", "2026-02", "2026-03", "2026-04"], "weekly": {"total": {"2026-W02": 596935.0, "2026-W03": 618254.19, "2026-W04": 627365.3, "2026-W05": 823468.98, "2026-W06": 714832.41, "2026-W07": 685268.9, "2026-W08": 565099.46, "2026-W09": 767775.47, "2026-W10": 767968.56, "2026-W11": 707569.57, "2026-W12": 625519.25, "2026-W13": 879883.04, "2026-W14": 571919.51, "2026-W15": 666979.4, "2026-W16": 582248.3, "2026-W17": 630215.24, "2026-W18": 365268.53, "2026-W01": 31636.56}, "by_pmo": {"2026-W02": {"VIVO REPARO": 118227.46, "MILETO": 44368.0, "VITAL": 198989.7, "VIVO SPM": 231591.61, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "TIM": 0, "VIVO N3": 0}, "2026-W03": {"VIVO REPARO": 214615.72, "MILETO": 16249.78, "VITAL": 152950.8, "VIVO SPM": 230679.66, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "TIM": 0, "VIVO N3": 0}, "2026-W04": {"VIVO REPARO": 244131.74, "VITAL": 158210.7, "VIVO SPM": 221264.64, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "TIM": 0, "VIVO N3": 0}, "2026-W05": {"VIVO REPARO": 339049.39, "MILETO": 48804.8, "VITAL": 160811.1, "VIVO N3": 22804.57, "TIM": 21186.0, "VIVO SPM": 227054.9, "MAVENIR": 2532.5, "TGESTIONA": 1225.72}, "2026-W06": {"VIVO REPARO": 225392.61, "MILETO": 17747.2, "VITAL": 190085.3, "TIM": 14552.0, "VIVO SPM": 263297.08, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "VIVO N3": 0}, "2026-W07": {"VIVO REPARO": 204531.78, "MILETO": 22184.0, "VITAL": 195561.9, "TIM": 18511.0, "VIVO SPM": 240721.99, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "VIVO N3": 0}, "2026-W08": {"VIVO REPARO": 136750.45, "MILETO": 9844.15, "VITAL": 145267.8, "TIM": 17655.0, "VIVO SPM": 251823.84, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "VIVO N3": 0}, "2026-W09": {"VIVO REPARO": 250955.85, "MILETO": 30308.89, "VITAL": 209194.3, "TIM": 20972.0, "VIVO SPM": 252586.21, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "VIVO N3": 0}, "2026-W10": {"VIVO REPARO": 296022.74, "VITAL": 210730.9, "TIM": 19420.5, "VIVO SPM": 238787.84, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0, "VIVO N3": 0}, "2026-W11": {"VIVO REPARO": 217003.85, "VITAL": 230884.0, "TIM": 18778.5, "VIVO SPM": 237896.64, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0, "VIVO N3": 0}, "2026-W12": {"VIVO REPARO": 178875.58, "VITAL": 205825.6, "TIM": 16264.0, "VIVO SPM": 221547.49, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0, "VIVO N3": 0}, "2026-W13": {"VIVO REPARO": 351977.42, "VITAL": 275662.1, "TIM": 18671.5, "VIVO SPM": 230565.44, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0, "VIVO N3": 0}, "2026-W14": {"VIVO REPARO": 211310.4, "VITAL": 121943.0, "VIVO N3": 19113.76, "TIM": 17227.0, "VIVO SPM": 199318.77, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0}, "2026-W15": {"VIVO REPARO": 177449.79, "VITAL": 199265.5, "TIM": 19313.5, "VIVO SPM": 267192.39, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "VIVO N3": 0}, "2026-W16": {"VIVO REPARO": 106217.97, "VITAL": 222472.1, "TIM": 17066.5, "VIVO SPM": 232733.51, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "VIVO N3": 0}, "2026-W17": {"VIVO REPARO": 218851.25, "VITAL": 177457.6, "TIM": 13963.5, "VIVO SPM": 216184.67, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "VIVO N3": 0}, "2026-W18": {"VIVO REPARO": 143026.46, "VITAL": 68496.9, "TIM": 6527.0, "VIVO SPM": 143459.95, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "VIVO N3": 0}, "2026-W01": {"VIVO SPM": 31636.56, "MAVENIR": 0, "MILETO": 0, "TGESTIONA": 0, "TIM": 0, "VITAL": 0, "VIVO N3": 0, "VIVO REPARO": 0}}, "by_warehouse": {"2026-W02": {"Jaguare": 20116.43, "Jundiaí": 33987.16, "Reparo Terceiros": 48520.67, "Sta Rita": 15603.2, "Rio de Janeiro (Remanufatura)": 243357.7, "SPM Regional SP": 231591.61, "Mavenir": 2532.5, "Tgestiona": 1225.72, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W03": {"Jaguare": 34274.31, "Jundiaí": 46566.89, "Reparo Terceiros": 22971.18, "Sta Rita": 110803.34, "Rio de Janeiro (Remanufatura)": 169200.58, "SPM Regional SP": 230679.66, "Mavenir": 2532.5, "Tgestiona": 1225.72, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W04": {"Jaguare": 10904.46, "Jundiaí": 60479.5, "Reparo Terceiros": 98677.93, "Sta Rita": 74069.85, "Rio de Janeiro (Remanufatura)": 158210.7, "SPM Regional SP": 221264.64, "Mavenir": 2532.5, "Tgestiona": 1225.72, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W05": {"Jaguare": 27397.43, "Jundiaí": 103307.53, "Reparo Terceiros": 103664.64, "Sta Rita": 104679.79, "Rio de Janeiro (Remanufatura)": 209615.9, "JDI Remanufatura": 22804.57, "Backoffice TIM": 21186.0, "SPM BBN": 3091.42, "SPM Regional SP": 223963.47, "Mavenir": 2532.5, "Tgestiona": 1225.72}, "2026-W06": {"Jaguare": 13212.68, "Jundiaí": 49740.58, "Reparo Terceiros": 97169.87, "Sta Rita": 65269.48, "Rio de Janeiro (Remanufatura)": 207832.5, "Backoffice TIM": 14552.0, "SPM BBN": 18548.52, "SPM Regional SP": 244748.55, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W07": {"Jaguare": 25679.69, "Jundiaí": 43580.8, "Reparo Terceiros": 34487.78, "Sta Rita": 100783.51, "Rio de Janeiro (Remanufatura)": 217745.9, "Backoffice TIM": 18511.0, "SPM BBN": 18548.52, "SPM Regional SP": 222173.47, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W08": {"Jaguare": 16063.25, "Jundiaí": 69288.9, "Reparo Terceiros": 5120.07, "Sta Rita": 46278.23, "Rio de Janeiro (Remanufatura)": 155111.95, "Backoffice TIM": 17655.0, "SPM BBN": 18548.52, "SPM Regional SP": 233275.32, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W09": {"Jaguare": 34165.96, "Jundiaí": 148264.06, "Reparo Terceiros": 1977.96, "Sta Rita": 66547.87, "Rio de Janeiro (Remanufatura)": 239503.19, "Backoffice TIM": 20972.0, "SPM BBN": 27822.78, "SPM Regional SP": 224763.42, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W10": {"Jaguare": 5882.62, "Jundiaí": 133849.66, "Reparo Terceiros": 10191.76, "Sta Rita": 146098.7, "Rio de Janeiro (Remanufatura)": 210730.9, "Backoffice TIM": 19420.5, "SPM BBN": 40188.46, "SPM Regional SP": 198599.38, "Mavenir": 2026.0, "Tgestiona": 980.58, "JDI Remanufatura": 0}, "2026-W11": {"Jaguare": 28744.56, "Jundiaí": 133325.08, "Reparo Terceiros": 37189.66, "Sta Rita": 17744.55, "Rio de Janeiro (Remanufatura)": 230884.0, "Backoffice TIM": 18778.5, "SPM BBN": 34005.62, "SPM Regional SP": 203891.02, "Mavenir": 2026.0, "Tgestiona": 980.58, "JDI Remanufatura": 0}, "2026-W12": {"Jaguare": 15358.27, "Jundiaí": 30221.43, "Reparo Terceiros": 14276.72, "Sta Rita": 119019.16, "Rio de Janeiro (Remanufatura)": 205825.6, "Backoffice TIM": 16264.0, "SPM BBN": 21639.94, "SPM Regional SP": 199907.55, "Mavenir": 2026.0, "Tgestiona": 980.58, "JDI Remanufatura": 0}, "2026-W13": {"Jaguare": 17557.99, "Jundiaí": 157564.1, "Reparo Terceiros": 54086.68, "Sta Rita": 122768.65, "Rio de Janeiro (Remanufatura)": 275662.1, "Backoffice TIM": 18671.5, "SPM BBN": 30914.2, "SPM Regional SP": 199651.24, "Mavenir": 2026.0, "Tgestiona": 980.58, "JDI Remanufatura": 0}, "2026-W14": {"Jaguare": 2362.62, "Jundiaí": 64241.99, "Reparo Terceiros": 53214.49, "Sta Rita": 91491.3, "Rio de Janeiro (Remanufatura)": 121943.0, "JDI Remanufatura": 19113.76, "Backoffice TIM": 17227.0, "SPM BBN": 15457.1, "SPM Regional SP": 183861.67, "Mavenir": 2026.0, "Tgestiona": 980.58}, "2026-W15": {"Jaguare": 5289.88, "Jundiaí": 68422.4, "Reparo Terceiros": 27536.48, "Sta Rita": 76201.03, "Rio de Janeiro (Remanufatura)": 199265.5, "Backoffice TIM": 19313.5, "SPM BBN": 46371.3, "SPM Regional SP": 220821.09, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W16": {"Jaguare": 8895.23, "Jundiaí": 54289.81, "Reparo Terceiros": 22845.39, "Sta Rita": 20187.54, "Rio de Janeiro (Remanufatura)": 222472.1, "Backoffice TIM": 17066.5, "SPM BBN": 27822.78, "SPM Regional SP": 204910.72, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W17": {"Jundiaí": 97106.27, "Reparo Terceiros": 10114.03, "Sta Rita": 111630.95, "Rio de Janeiro (Remanufatura)": 177457.6, "Backoffice TIM": 13963.5, "SPM BBN": 18548.52, "SPM Regional SP": 197636.15, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0, "Jaguare": 0}, "2026-W18": {"Jundiaí": 38509.38, "Reparo Terceiros": 48768.96, "Sta Rita": 55748.12, "Rio de Janeiro (Remanufatura)": 68496.9, "Backoffice TIM": 6527.0, "SPM Regional SP": 143459.95, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0, "Jaguare": 0, "SPM BBN": 0}, "2026-W01": {"SPM Regional SP": 31636.56, "Backoffice TIM": 0, "JDI Remanufatura": 0, "Jaguare": 0, "Jundiaí": 0, "Mavenir": 0, "Reparo Terceiros": 0, "Rio de Janeiro (Remanufatura)": 0, "SPM BBN": 0, "Sta Rita": 0, "Tgestiona": 0}}}, "monthly": {"total": {"2026-01": 2694568.61, "2026-02": 2736067.66, "2026-03": 3461368.62, "2026-04": 2336202.77}, "by_pmo": {"2026-01": {"VIVO REPARO": 916024.31, "MILETO": 109422.58, "VITAL": 670962.3, "VIVO N3": 22804.57, "TIM": 21186.0, "VIVO SPM": 939135.95, "MAVENIR": 10130.0, "TGESTIONA": 4902.9}, "2026-02": {"VIVO REPARO": 817630.69, "MILETO": 80084.24, "VITAL": 740109.3, "TIM": 71690.0, "VIVO SPM": 1011520.53, "MAVENIR": 10130.0, "TGESTIONA": 4902.9, "VIVO N3": 0}, "2026-03": {"VIVO REPARO": 1163698.69, "VITAL": 1045045.6, "VIVO N3": 19113.76, "TIM": 90361.5, "VIVO SPM": 1128116.17, "MAVENIR": 10130.0, "TGESTIONA": 4902.9, "MILETO": 0}, "2026-04": {"VIVO REPARO": 737036.77, "VITAL": 667692.1, "TIM": 56870.5, "VIVO SPM": 859570.5, "MAVENIR": 10130.0, "TGESTIONA": 4902.9, "MILETO": 0, "VIVO N3": 0}}, "by_warehouse": {"2026-01": {"Jaguare": 92692.63, "Jundiaí": 244341.08, "Reparo Terceiros": 273834.42, "Sta Rita": 305156.18, "Rio de Janeiro (Remanufatura)": 780384.88, "JDI Remanufatura": 22804.57, "Backoffice TIM": 21186.0, "SPM Regional SP": 939135.95, "Mavenir": 10130.0, "Tgestiona": 4902.9, "SPM BBN": 0}, "2026-02": {"Jaguare": 89121.58, "Jundiaí": 310874.34, "Reparo Terceiros": 138755.68, "Sta Rita": 278879.09, "Rio de Janeiro (Remanufatura)": 820193.54, "Backoffice TIM": 71690.0, "SPM BBN": 86559.76, "SPM Regional SP": 924960.77, "Mavenir": 10130.0, "Tgestiona": 4902.9, "JDI Remanufatura": 0}, "2026-03": {"Jaguare": 69906.06, "Jundiaí": 519202.26, "Reparo Terceiros": 168959.31, "Sta Rita": 405631.06, "Rio de Janeiro (Remanufatura)": 1045045.6, "JDI Remanufatura": 19113.76, "Backoffice TIM": 90361.5, "SPM BBN": 142205.32, "SPM Regional SP": 985910.85, "Mavenir": 10130.0, "Tgestiona": 4902.9}, "2026-04": {"Sta Rita": 355258.94, "Jaguare": 14185.11, "Jundiaí": 258327.86, "Reparo Terceiros": 109264.86, "Rio de Janeiro (Remanufatura)": 667692.1, "Backoffice TIM": 56870.5, "SPM BBN": 92742.6, "SPM Regional SP": 766827.9, "Mavenir": 10130.0, "Tgestiona": 4902.9, "JDI Remanufatura": 0}}}, "week_to_month": {"2026-W01": "2026-01", "2026-W02": "2026-01", "2026-W03": "2026-01", "2026-W04": "2026-01", "2026-W05": "2026-01", "2026-W06": "2026-02", "2026-W07": "2026-02", "2026-W08": "2026-02", "2026-W09": "2026-02", "2026-W10": "2026-03", "2026-W11": "2026-03", "2026-W12": "2026-03", "2026-W13": "2026-03", "2026-W14": "2026-04", "2026-W15": "2026-04", "2026-W16": "2026-04", "2026-W17": "2026-04", "2026-W18": "2026-04"}};
+const DATA = {"weekly_target": 375000, "pmos": ["MAVENIR", "MILETO", "TGESTIONA", "TIM", "VITAL", "VIVO N3", "VIVO REPARO", "VIVO SPM"], "warehouses": ["Backoffice TIM", "JDI Remanufatura", "Jaguare", "Jundiaí", "Mavenir", "Reparo Terceiros", "Rio de Janeiro (Remanufatura)", "SPM BBN", "SPM Regional SP", "Sta Rita", "Tgestiona"], "weeks": ["2026-W01", "2026-W02", "2026-W03", "2026-W04", "2026-W05", "2026-W06", "2026-W07", "2026-W08", "2026-W09", "2026-W10", "2026-W11", "2026-W12", "2026-W13", "2026-W14", "2026-W15", "2026-W16", "2026-W17", "2026-W18"], "months": ["2026-01", "2026-02", "2026-03", "2026-04"], "weekly": {"total": {"2026-W02": 596935.0, "2026-W03": 618254.19, "2026-W04": 627365.3, "2026-W05": 823468.98, "2026-W06": 714832.41, "2026-W07": 685268.9, "2026-W08": 565099.46, "2026-W09": 767775.47, "2026-W10": 767968.56, "2026-W11": 707569.57, "2026-W12": 625519.25, "2026-W13": 879883.04, "2026-W14": 574022.78, "2026-W15": 673063.99, "2026-W16": 583215.15, "2026-W17": 641372.4, "2026-W18": 603411.91, "2026-W01": 31636.56}, "by_pmo": {"2026-W02": {"VIVO REPARO": 118227.46, "MILETO": 44368.0, "VITAL": 198989.7, "VIVO SPM": 231591.61, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "TIM": 0, "VIVO N3": 0}, "2026-W03": {"VIVO REPARO": 214615.72, "MILETO": 16249.78, "VITAL": 152950.8, "VIVO SPM": 230679.66, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "TIM": 0, "VIVO N3": 0}, "2026-W04": {"VIVO REPARO": 244131.74, "VITAL": 158210.7, "VIVO SPM": 221264.64, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "TIM": 0, "VIVO N3": 0}, "2026-W05": {"VIVO REPARO": 339049.39, "MILETO": 48804.8, "VITAL": 160811.1, "VIVO N3": 22804.57, "TIM": 21186.0, "VIVO SPM": 227054.9, "MAVENIR": 2532.5, "TGESTIONA": 1225.72}, "2026-W06": {"VIVO REPARO": 225392.61, "MILETO": 17747.2, "VITAL": 190085.3, "TIM": 14552.0, "VIVO SPM": 263297.08, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "VIVO N3": 0}, "2026-W07": {"VIVO REPARO": 204531.78, "MILETO": 22184.0, "VITAL": 195561.9, "TIM": 18511.0, "VIVO SPM": 240721.99, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "VIVO N3": 0}, "2026-W08": {"VIVO REPARO": 136750.45, "MILETO": 9844.15, "VITAL": 145267.8, "TIM": 17655.0, "VIVO SPM": 251823.84, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "VIVO N3": 0}, "2026-W09": {"VIVO REPARO": 250955.85, "MILETO": 30308.89, "VITAL": 209194.3, "TIM": 20972.0, "VIVO SPM": 252586.21, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "VIVO N3": 0}, "2026-W10": {"VIVO REPARO": 296022.74, "VITAL": 210730.9, "TIM": 19420.5, "VIVO SPM": 238787.84, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0, "VIVO N3": 0}, "2026-W11": {"VIVO REPARO": 217003.85, "VITAL": 230884.0, "TIM": 18778.5, "VIVO SPM": 237896.64, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0, "VIVO N3": 0}, "2026-W12": {"VIVO REPARO": 178875.58, "VITAL": 205825.6, "TIM": 16264.0, "VIVO SPM": 221547.49, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0, "VIVO N3": 0}, "2026-W13": {"VIVO REPARO": 351977.42, "VITAL": 275662.1, "TIM": 18671.5, "VIVO SPM": 230565.44, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0, "VIVO N3": 0}, "2026-W14": {"VIVO REPARO": 213413.67, "VITAL": 121943.0, "VIVO N3": 19113.76, "TIM": 17227.0, "VIVO SPM": 199318.77, "MAVENIR": 2026.0, "TGESTIONA": 980.58, "MILETO": 0}, "2026-W15": {"VIVO REPARO": 183350.24, "VITAL": 199265.5, "TIM": 19313.5, "VIVO SPM": 267376.53, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "VIVO N3": 0}, "2026-W16": {"VIVO REPARO": 107000.67, "VITAL": 222472.1, "TIM": 17066.5, "VIVO SPM": 232917.66, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "VIVO N3": 0}, "2026-W17": {"VIVO REPARO": 222895.45, "VITAL": 177457.6, "TIM": 13856.5, "VIVO SPM": 223404.62, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "VIVO N3": 0}, "2026-W18": {"VIVO REPARO": 216976.22, "VITAL": 144499.5, "TIM": 18136.5, "VIVO SPM": 220041.47, "MAVENIR": 2532.5, "TGESTIONA": 1225.72, "MILETO": 0, "VIVO N3": 0}, "2026-W01": {"VIVO SPM": 31636.56, "MAVENIR": 0, "MILETO": 0, "TGESTIONA": 0, "TIM": 0, "VITAL": 0, "VIVO N3": 0, "VIVO REPARO": 0}}, "by_warehouse": {"2026-W02": {"Jaguare": 20116.43, "Jundiaí": 33987.16, "Reparo Terceiros": 48520.67, "Sta Rita": 15603.2, "Rio de Janeiro (Remanufatura)": 243357.7, "SPM Regional SP": 231591.61, "Mavenir": 2532.5, "Tgestiona": 1225.72, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W03": {"Jaguare": 34274.31, "Jundiaí": 46566.89, "Reparo Terceiros": 22971.18, "Sta Rita": 110803.34, "Rio de Janeiro (Remanufatura)": 169200.58, "SPM Regional SP": 230679.66, "Mavenir": 2532.5, "Tgestiona": 1225.72, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W04": {"Jaguare": 10904.46, "Jundiaí": 60479.5, "Reparo Terceiros": 98677.93, "Sta Rita": 74069.85, "Rio de Janeiro (Remanufatura)": 158210.7, "SPM Regional SP": 221264.64, "Mavenir": 2532.5, "Tgestiona": 1225.72, "Backoffice TIM": 0, "JDI Remanufatura": 0, "SPM BBN": 0}, "2026-W05": {"Jaguare": 27397.43, "Jundiaí": 103307.53, "Reparo Terceiros": 103664.64, "Sta Rita": 104679.79, "Rio de Janeiro (Remanufatura)": 209615.9, "JDI Remanufatura": 22804.57, "Backoffice TIM": 21186.0, "SPM BBN": 3091.42, "SPM Regional SP": 223963.47, "Mavenir": 2532.5, "Tgestiona": 1225.72}, "2026-W06": {"Jaguare": 13212.68, "Jundiaí": 49740.58, "Reparo Terceiros": 97169.87, "Sta Rita": 65269.48, "Rio de Janeiro (Remanufatura)": 207832.5, "Backoffice TIM": 14552.0, "SPM BBN": 18548.52, "SPM Regional SP": 244748.55, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W07": {"Jaguare": 25679.69, "Jundiaí": 43580.8, "Reparo Terceiros": 34487.78, "Sta Rita": 100783.51, "Rio de Janeiro (Remanufatura)": 217745.9, "Backoffice TIM": 18511.0, "SPM BBN": 18548.52, "SPM Regional SP": 222173.47, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W08": {"Jaguare": 16063.25, "Jundiaí": 69288.9, "Reparo Terceiros": 5120.07, "Sta Rita": 46278.23, "Rio de Janeiro (Remanufatura)": 155111.95, "Backoffice TIM": 17655.0, "SPM BBN": 18548.52, "SPM Regional SP": 233275.32, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W09": {"Jaguare": 34165.96, "Jundiaí": 148264.06, "Reparo Terceiros": 1977.96, "Sta Rita": 66547.87, "Rio de Janeiro (Remanufatura)": 239503.19, "Backoffice TIM": 20972.0, "SPM BBN": 27822.78, "SPM Regional SP": 224763.42, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W10": {"Jaguare": 5882.62, "Jundiaí": 133849.66, "Reparo Terceiros": 10191.76, "Sta Rita": 146098.7, "Rio de Janeiro (Remanufatura)": 210730.9, "Backoffice TIM": 19420.5, "SPM BBN": 40188.46, "SPM Regional SP": 198599.38, "Mavenir": 2026.0, "Tgestiona": 980.58, "JDI Remanufatura": 0}, "2026-W11": {"Jaguare": 28744.56, "Jundiaí": 133325.08, "Reparo Terceiros": 37189.66, "Sta Rita": 17744.55, "Rio de Janeiro (Remanufatura)": 230884.0, "Backoffice TIM": 18778.5, "SPM BBN": 34005.62, "SPM Regional SP": 203891.02, "Mavenir": 2026.0, "Tgestiona": 980.58, "JDI Remanufatura": 0}, "2026-W12": {"Jaguare": 15358.27, "Jundiaí": 30221.43, "Reparo Terceiros": 14276.72, "Sta Rita": 119019.16, "Rio de Janeiro (Remanufatura)": 205825.6, "Backoffice TIM": 16264.0, "SPM BBN": 21639.94, "SPM Regional SP": 199907.55, "Mavenir": 2026.0, "Tgestiona": 980.58, "JDI Remanufatura": 0}, "2026-W13": {"Jaguare": 17557.99, "Jundiaí": 157564.1, "Reparo Terceiros": 54086.68, "Sta Rita": 122768.65, "Rio de Janeiro (Remanufatura)": 275662.1, "Backoffice TIM": 18671.5, "SPM BBN": 30914.2, "SPM Regional SP": 199651.24, "Mavenir": 2026.0, "Tgestiona": 980.58, "JDI Remanufatura": 0}, "2026-W14": {"Jaguare": 4465.89, "Jundiaí": 64241.99, "Reparo Terceiros": 53214.49, "Sta Rita": 91491.3, "Rio de Janeiro (Remanufatura)": 121943.0, "JDI Remanufatura": 19113.76, "Backoffice TIM": 17227.0, "SPM BBN": 15457.1, "SPM Regional SP": 183861.67, "Mavenir": 2026.0, "Tgestiona": 980.58}, "2026-W15": {"Jaguare": 11190.33, "Jundiaí": 68422.4, "Reparo Terceiros": 27536.48, "Sta Rita": 76201.03, "Rio de Janeiro (Remanufatura)": 199265.5, "Backoffice TIM": 19313.5, "SPM BBN": 46371.3, "SPM Regional SP": 221005.22, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W16": {"Jaguare": 9677.93, "Jundiaí": 54289.81, "Reparo Terceiros": 22845.39, "Sta Rita": 20187.54, "Rio de Janeiro (Remanufatura)": 222472.1, "Backoffice TIM": 17066.5, "SPM BBN": 27822.78, "SPM Regional SP": 205094.88, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W17": {"Jaguare": 4044.2, "Jundiaí": 97106.27, "Reparo Terceiros": 10114.03, "Sta Rita": 111630.95, "Rio de Janeiro (Remanufatura)": 177457.6, "Backoffice TIM": 13856.5, "SPM BBN": 24731.36, "SPM Regional SP": 198673.27, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W18": {"Jaguare": 4780.18, "Jundiaí": 83481.28, "Reparo Terceiros": 72276.42, "Sta Rita": 56438.34, "Rio de Janeiro (Remanufatura)": 144499.5, "Backoffice TIM": 18136.5, "SPM BBN": 12365.68, "SPM Regional SP": 207675.79, "Mavenir": 2532.5, "Tgestiona": 1225.72, "JDI Remanufatura": 0}, "2026-W01": {"SPM Regional SP": 31636.56, "Backoffice TIM": 0, "JDI Remanufatura": 0, "Jaguare": 0, "Jundiaí": 0, "Mavenir": 0, "Reparo Terceiros": 0, "Rio de Janeiro (Remanufatura)": 0, "SPM BBN": 0, "Sta Rita": 0, "Tgestiona": 0}}}, "monthly": {"total": {"2026-01": 2694568.61, "2026-02": 2736067.66, "2026-03": 3463471.89, "2026-04": 2592554.75}, "by_pmo": {"2026-01": {"VIVO REPARO": 916024.31, "MILETO": 109422.58, "VITAL": 670962.3, "VIVO N3": 22804.57, "TIM": 21186.0, "VIVO SPM": 939135.95, "MAVENIR": 10130.0, "TGESTIONA": 4902.9}, "2026-02": {"VIVO REPARO": 817630.69, "MILETO": 80084.24, "VITAL": 740109.3, "TIM": 71690.0, "VIVO SPM": 1011520.53, "MAVENIR": 10130.0, "TGESTIONA": 4902.9, "VIVO N3": 0}, "2026-03": {"VIVO REPARO": 1165801.96, "VITAL": 1045045.6, "VIVO N3": 19113.76, "TIM": 90361.5, "VIVO SPM": 1128116.17, "MAVENIR": 10130.0, "TGESTIONA": 4902.9, "MILETO": 0}, "2026-04": {"VIVO REPARO": 821713.88, "VITAL": 743694.7, "TIM": 68373.0, "VIVO SPM": 943740.27, "MAVENIR": 10130.0, "TGESTIONA": 4902.9, "MILETO": 0, "VIVO N3": 0}}, "by_warehouse": {"2026-01": {"Jaguare": 92692.63, "Jundiaí": 244341.08, "Reparo Terceiros": 273834.42, "Sta Rita": 305156.18, "Rio de Janeiro (Remanufatura)": 780384.88, "JDI Remanufatura": 22804.57, "Backoffice TIM": 21186.0, "SPM Regional SP": 939135.95, "Mavenir": 10130.0, "Tgestiona": 4902.9, "SPM BBN": 0}, "2026-02": {"Jaguare": 89121.58, "Jundiaí": 310874.34, "Reparo Terceiros": 138755.68, "Sta Rita": 278879.09, "Rio de Janeiro (Remanufatura)": 820193.54, "Backoffice TIM": 71690.0, "SPM BBN": 86559.76, "SPM Regional SP": 924960.77, "Mavenir": 10130.0, "Tgestiona": 4902.9, "JDI Remanufatura": 0}, "2026-03": {"Jaguare": 72009.33, "Jundiaí": 519202.26, "Reparo Terceiros": 168959.31, "Sta Rita": 405631.06, "Rio de Janeiro (Remanufatura)": 1045045.6, "JDI Remanufatura": 19113.76, "Backoffice TIM": 90361.5, "SPM BBN": 142205.32, "SPM Regional SP": 985910.85, "Mavenir": 10130.0, "Tgestiona": 4902.9}, "2026-04": {"Sta Rita": 355949.16, "Jaguare": 29692.64, "Jundiaí": 303299.76, "Reparo Terceiros": 132772.32, "Rio de Janeiro (Remanufatura)": 743694.7, "Backoffice TIM": 68373.0, "SPM BBN": 111291.12, "SPM Regional SP": 832449.15, "Mavenir": 10130.0, "Tgestiona": 4902.9, "JDI Remanufatura": 0}}}, "week_to_month": {"2026-W01": "2026-01", "2026-W02": "2026-01", "2026-W03": "2026-01", "2026-W04": "2026-01", "2026-W05": "2026-01", "2026-W06": "2026-02", "2026-W07": "2026-02", "2026-W08": "2026-02", "2026-W09": "2026-02", "2026-W10": "2026-03", "2026-W11": "2026-03", "2026-W12": "2026-03", "2026-W13": "2026-03", "2026-W14": "2026-04", "2026-W15": "2026-04", "2026-W16": "2026-04", "2026-W17": "2026-04", "2026-W18": "2026-04"}, "week_dates": {"2026-W01": {"start": "2025-12-29", "end": "2026-01-04"}, "2026-W02": {"start": "2026-01-05", "end": "2026-01-11"}, "2026-W03": {"start": "2026-01-12", "end": "2026-01-18"}, "2026-W04": {"start": "2026-01-19", "end": "2026-01-25"}, "2026-W05": {"start": "2026-01-26", "end": "2026-02-01"}, "2026-W06": {"start": "2026-02-02", "end": "2026-02-08"}, "2026-W07": {"start": "2026-02-09", "end": "2026-02-15"}, "2026-W08": {"start": "2026-02-16", "end": "2026-02-22"}, "2026-W09": {"start": "2026-02-23", "end": "2026-03-01"}, "2026-W10": {"start": "2026-03-02", "end": "2026-03-08"}, "2026-W11": {"start": "2026-03-09", "end": "2026-03-15"}, "2026-W12": {"start": "2026-03-16", "end": "2026-03-22"}, "2026-W13": {"start": "2026-03-23", "end": "2026-03-29"}, "2026-W14": {"start": "2026-03-30", "end": "2026-04-05"}, "2026-W15": {"start": "2026-04-06", "end": "2026-04-12"}, "2026-W16": {"start": "2026-04-13", "end": "2026-04-19"}, "2026-W17": {"start": "2026-04-20", "end": "2026-04-26"}, "2026-W18": {"start": "2026-04-27", "end": "2026-05-03"}}};
 let currentFilter='Todos',currentView='weekly',weeklyTarget=DATA.weekly_target;
 let currentMonth='Todos',currentWeek='Todos';
+let dateFrom='',dateTo='';
+const WEEK_DATES=DATA.week_dates||{};
 const PMO_COLORS={'TIM':'#00a8e0','VIVO REPARO':'#c0392b','VITAL':'#2980b9','MILETO':'#8e44ad','VIVO N3':'#27ae60','VIVO SPM':'#f39c12'};
 const WH_COLORS=['#00a8e0','#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad','#1abc9c','#e67e22','#3498db'];
 const MONTH_NAMES={'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun','07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
@@ -223,22 +245,66 @@ function pctStr(v){return(v>=0?'+':'')+v.toFixed(1)+'%';}
 function fmtMonth(m){var p=m.split('-');return MONTH_NAMES[p[1]]+'/'+p[0].slice(2);}
 function fmtWeek(w){return w.replace('2026-','');}
 
+/* ── Filtro de período por data ── */
+function applyDateFilter(){
+  var from=document.getElementById('dateFrom').value;
+  var to=document.getElementById('dateTo').value;
+  dateFrom=from||'';
+  dateTo=to||'';
+  // Limpar filtros de clique ao usar filtro de data
+  if(dateFrom||dateTo){currentMonth='Todos';currentWeek='Todos';}
+  document.getElementById('periodClearBtn').style.display=(dateFrom||dateTo)?'inline-block':'none';
+  renderAll();
+}
+function clearDateFilter(){
+  dateFrom='';dateTo='';
+  document.getElementById('dateFrom').value='';
+  document.getElementById('dateTo').value='';
+  document.getElementById('periodClearBtn').style.display='none';
+  renderAll();
+}
+function isWeekInDateRange(wk){
+  if(!dateFrom&&!dateTo) return true;
+  var wd=WEEK_DATES[wk];
+  if(!wd) return true;
+  // Semana entra se tiver qualquer sobreposição com o intervalo
+  if(dateFrom&&wd.end<dateFrom) return false;
+  if(dateTo&&wd.start>dateTo) return false;
+  return true;
+}
+function isMonthInDateRange(mo){
+  if(!dateFrom&&!dateTo) return true;
+  // Calcular primeiro e último dia do mês
+  var parts=mo.split('-');
+  var y=parseInt(parts[0]),m=parseInt(parts[1]);
+  var firstDay=mo+'-01';
+  var lastDay=new Date(y,m,0);
+  var ld=y+'-'+(m<10?'0':'')+m+'-'+(lastDay.getDate()<10?'0':'')+lastDay.getDate();
+  if(dateFrom&&ld<dateFrom) return false;
+  if(dateTo&&firstDay>dateTo) return false;
+  return true;
+}
+
 /* ── Filtros: semanas e meses filtrados ── */
 function getFilteredWeeks(){
   var w=DATA.weeks;
+  // Filtro de período por data (prioridade)
+  if(dateFrom||dateTo) w=w.filter(function(x){return isWeekInDateRange(x);});
   if(currentMonth!=='Todos') w=w.filter(function(x){return WEEK_MONTH[x]===currentMonth;});
   if(currentWeek!=='Todos') w=[currentWeek];
   return w;
 }
 function getFilteredMonths(){
   var m=DATA.months;
+  // Filtro de período por data (prioridade)
+  if(dateFrom||dateTo) m=m.filter(function(x){return isMonthInDateRange(x);});
   if(currentWeek!=='Todos'){var wm=WEEK_MONTH[currentWeek];if(wm)m=m.filter(function(x){return x===wm;});return m;}
   if(currentMonth!=='Todos') m=m.filter(function(x){return x===currentMonth;});
   return m;
 }
 function getWVal(wk){if(currentFilter==='Todos')return DATA.weekly.total[wk]||0;return(DATA.weekly.by_pmo[wk]||{})[currentFilter]||0;}
 function getMVal(mo){if(currentFilter==='Todos')return DATA.monthly.total[mo]||0;return(DATA.monthly.by_pmo[mo]||{})[currentFilter]||0;}
-const layoutBase={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:60,r:20,t:10,b:40},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10}},yaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10},tickprefix:'R$ ',separatethousands:true},legend:{orientation:'h',y:-0.15,font:{size:10}},hovermode:'x unified'};
+const layoutBase={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:60,r:20,t:10,b:40},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10}},yaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10},tickprefix:'R$ ',separatethousands:true},legend:{orientation:'h',y:-0.15,font:{size:10}},hovermode:'closest',dragmode:false};
 
 /* ── Mapa de label → chave original (para clique nos gráficos) ── */
 var LABEL_TO_WEEK={};DATA.weeks.forEach(function(w){LABEL_TO_WEEK[fmtWeek(w)]=w;});
@@ -248,15 +314,25 @@ var LABEL_TO_MONTH={};DATA.months.forEach(function(m){LABEL_TO_MONTH[fmtMonth(m)
 function updateFilterBanner(){
   var banner=document.getElementById('activeFilterBanner');
   var txt=document.getElementById('activeFilterText');
-  if(currentMonth!=='Todos'||currentWeek!=='Todos'){
+  var hasDateFilter=dateFrom||dateTo;
+  if(currentMonth!=='Todos'||currentWeek!=='Todos'||hasDateFilter){
     banner.style.display='block';
-    if(currentWeek!=='Todos') txt.textContent='Filtrado: '+fmtWeek(currentWeek);
+    if(hasDateFilter){
+      var label='Período: ';
+      if(dateFrom){var df=dateFrom.split('-');label+=df[2]+'/'+df[1]+'/'+df[0];}
+      else label+='início';
+      label+=' a ';
+      if(dateTo){var dt=dateTo.split('-');label+=dt[2]+'/'+dt[1]+'/'+dt[0];}
+      else label+='fim';
+      txt.textContent=label;
+    }
+    else if(currentWeek!=='Todos') txt.textContent='Filtrado: '+fmtWeek(currentWeek);
     else txt.textContent='Filtrado: '+fmtMonth(currentMonth);
   } else {
     banner.style.display='none';
   }
 }
-function clearPeriodFilter(){currentMonth='Todos';currentWeek='Todos';renderAll();}
+function clearPeriodFilter(){currentMonth='Todos';currentWeek='Todos';clearDateFilter();renderAll();}
 
 /* ── Cards KPI ── */
 function renderCards(){
@@ -316,28 +392,50 @@ function renderEvolution(){
   var labels=keys.map(function(k){return isW?fmtWeek(k):fmtMonth(k);});
   var yv=keys.map(function(k){return isW?getWVal(k):getMVal(k);});
   var vari=[0];for(var i=1;i<yv.length;i++)vari.push(pct(yv[i],yv[i-1]));
-  var vtxt=vari.map(function(v,i){return i===0?'':pctStr(v);});
+  var maxY=Math.max.apply(null,yv)*1.3||1;
 
   var selectedLabel=null;
   if(isW&&currentWeek!=='Todos') selectedLabel=fmtWeek(currentWeek);
   if(!isW&&currentMonth!=='Todos') selectedLabel=fmtMonth(currentMonth);
 
   var bc=yv.map(function(v,i){
-    if(selectedLabel&&labels[i]!==selectedLabel) return '#0a1628';
+    if(selectedLabel&&labels[i]===selectedLabel) return '#4a9eff';
+    if(selectedLabel) return '#003366';
     return '#003366';
   });
   var opac=yv.map(function(v,i){
-    if(selectedLabel&&labels[i]!==selectedLabel) return 0.3;
+    if(selectedLabel&&labels[i]!==selectedLabel) return 0.35;
     return 0.92;
   });
 
   var traces=[
-    {x:labels,y:yv,type:'bar',name:'Faturamento',marker:{color:bc,opacity:opac},text:yv.map(function(v){return fmtK(v);}),textposition:'outside',textfont:{size:9,color:'#8899aa'},hovertemplate:'%{x}<br>R$ %{y:,.2f}<extra></extra>'},
-    {x:labels,y:vari,type:'scatter',mode:'lines+markers+text',name:'Varia\u00e7\u00e3o %',yaxis:'y2',line:{color:'#f39c12',width:2},marker:{size:5,color:'#f39c12'},text:vtxt,textposition:'top center',textfont:{size:9,color:'#f39c12'},hovertemplate:'%{x}: %{text}<extra></extra>'}
+    {x:labels,y:yv,type:'bar',name:'Faturamento',marker:{color:bc,opacity:opac},hovertemplate:'%{x}<br>R$ %{y:,.2f}<extra></extra>'}
   ];
   if(isW)traces.push({x:labels,y:labels.map(function(){return weeklyTarget;}),type:'scatter',mode:'lines',name:'Meta',line:{color:'#fff',width:1,dash:'dot'},hoverinfo:'skip'});
-  var layout=Object.assign({},layoutBase,{yaxis:Object.assign({},layoutBase.yaxis,{title:'Faturamento (R$)'}),yaxis2:{overlaying:'y',side:'right',showgrid:false,ticksuffix:'%',gridcolor:'transparent',linecolor:'transparent',tickfont:{size:9,color:'#f39c12'},zeroline:false},barmode:'group',showlegend:true});
-  Plotly.newPlot(div,traces,layout,{responsive:true,displayModeBar:false});
+
+  var annotations=[];
+  for(var i=0;i<labels.length;i++){
+    annotations.push({x:labels[i],y:yv[i],text:fmtK(yv[i]),showarrow:false,yshift:16,font:{size:10,color:'#8899aa'},yref:'y'});
+    if(i>0){
+      var v=vari[i];
+      var arrow=v>=0?'⮝':'⮟';
+      var cor=v>=0?'#27ae60':'#e74c3c';
+      annotations.push({x:labels[i],y:yv[i],text:arrow+' '+Math.abs(v).toFixed(2)+'%',showarrow:false,yshift:34,font:{size:9,color:cor},yref:'y'});
+    }
+  }
+
+  var layout={
+    paper_bgcolor:'transparent',plot_bgcolor:'transparent',
+    font:{color:'#b0c4de',size:11},
+    margin:{l:60,r:20,t:50,b:40},
+    xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10}},
+    yaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:10},tickprefix:'R$ ',separatethousands:true,range:[0,maxY]},
+    barmode:'group',showlegend:true,
+    legend:{orientation:'h',y:-0.15,font:{size:10}},
+    hovermode:'closest',dragmode:false,
+    annotations:annotations
+  };
+  Plotly.newPlot(div,traces,layout,{responsive:true,displayModeBar:false,scrollZoom:false});
   div.on('plotly_click',handleEvolutionClick);
 }
 
@@ -350,7 +448,8 @@ function renderPMO(){
   var bp=isW?DATA.weekly.by_pmo:DATA.monthly.by_pmo;
   var pmos=currentFilter==='Todos'?DATA.pmos:[currentFilter];
   var traces=pmos.map(function(p){return{x:labels,y:keys.map(function(k){return(bp[k]||{})[p]||0;}),type:'bar',name:p,marker:{color:PMO_COLORS[p]||'#666'},hovertemplate:p+'<br>R$ %{y:,.2f}<extra></extra>'};});
-  Plotly.newPlot(div,traces,Object.assign({},layoutBase,{barmode:'stack',showlegend:true}),{responsive:true,displayModeBar:false});
+  var pmoLayout=Object.assign({},layoutBase,{barmode:'stack',showlegend:true,hovermode:'closest',dragmode:false});
+  Plotly.newPlot(div,traces,pmoLayout,{responsive:true,displayModeBar:false,scrollZoom:false});
   div.on('plotly_click',function(data){
     if(!data||!data.points||!data.points[0])return;
     var pmoName=data.points[0].data.name;
@@ -372,8 +471,8 @@ function renderWarehouse(){
   var items=Object.entries(totals).filter(function(x){return x[1]>0;}).sort(function(a,b){return a[1]-b[1];});
   var periodLabel=currentMonth!=='Todos'?fmtMonth(currentMonth):(currentWeek!=='Todos'?fmtWeek(currentWeek):'Acumulado 2026');
   var trace={y:items.map(function(x){return x[0];}),x:items.map(function(x){return x[1];}),type:'bar',orientation:'h',marker:{color:items.map(function(_,i){return WH_COLORS[i%WH_COLORS.length];}),opacity:0.9},text:items.map(function(x){return fmtBRL(x[1]);}),textposition:'outside',textfont:{size:10,color:'#b0c4de'},hovertemplate:'%{y}<br>%{text}<extra></extra>',cliponaxis:false};
-  var layout={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:190,r:120,t:30,b:30},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:9,color:'#5a7a9a'},showticklabels:false,zeroline:false},yaxis:{tickfont:{size:11,color:'#d0d8e0'},gridcolor:'transparent',linecolor:'transparent',automargin:true},showlegend:false,annotations:[{x:0.5,y:1.06,xref:'paper',yref:'paper',text:periodLabel,showarrow:false,font:{size:10,color:'#8899aa'}}]};
-  Plotly.newPlot(div,[trace],layout,{responsive:true,displayModeBar:false});
+  var layout={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{color:'#b0c4de',size:11},margin:{l:190,r:120,t:30,b:30},xaxis:{gridcolor:'#1a2a44',linecolor:'#1a2a44',tickfont:{size:9,color:'#5a7a9a'},showticklabels:false,zeroline:false},yaxis:{tickfont:{size:11,color:'#d0d8e0'},gridcolor:'transparent',linecolor:'transparent',automargin:true},showlegend:false,hovermode:'closest',dragmode:false,annotations:[{x:0.5,y:1.06,xref:'paper',yref:'paper',text:periodLabel,showarrow:false,font:{size:10,color:'#8899aa'}}]};
+  Plotly.newPlot(div,[trace],layout,{responsive:true,displayModeBar:false,scrollZoom:false});
 }
 
 /* ── Tabelas ── */
@@ -431,6 +530,11 @@ function showDash() {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('changePassOverlay').style.display = 'none';
   document.getElementById('dashContent').style.display = 'block';
+  // Inicializar limites dos campos de data
+  var allStarts=DATA.weeks.map(function(w){return (WEEK_DATES[w]||{}).start||'';}).filter(Boolean).sort();
+  var allEnds=DATA.weeks.map(function(w){return (WEEK_DATES[w]||{}).end||'';}).filter(Boolean).sort();
+  if(allStarts.length){document.getElementById('dateFrom').min=allStarts[0];document.getElementById('dateTo').min=allStarts[0];}
+  if(allEnds.length){document.getElementById('dateFrom').max=allEnds[allEnds.length-1];document.getElementById('dateTo').max=allEnds[allEnds.length-1];}
   renderAll();
 }
 
